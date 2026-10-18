@@ -13,7 +13,7 @@
 #include <linux/mm.h>
 #include <asm/cacheflush.h>
 
-#define LOG_BASE	0x44400000UL	/* CONFIG_MTK_RAM_CONSOLE_DRAM_ADDR of the stock kernel */
+#define LOG_BASE	0x43f00000UL	/* CONFIG_MTK_RAM_CONSOLE_DRAM_ADDR of the stock kernel */
 #define LOG_SIZE	0x10000UL	/* CONFIG_MTK_RAM_CONSOLE_DRAM_SIZE: stock rejects other sizes */
 #define TEXT		512
 #define SIG		0x43474244
@@ -55,10 +55,12 @@ static int __init ramlog_init(void)
 	}
 	if (!log)
 		return 0;
-	memset_io(log, 'M', LOG_SIZE);	/* bring-up probe: a wholly 'M' buffer in last_kmsg proves the region is shared */
 	memset_io(log, 0, TEXT);
 	writel(SIG, log);
 	writel(LOG_SIZE, log + SZ_BUFFER);
+	writel(TEXT, log + 44);	/* off_linux, off_console, sz_console: lets the stock /proc/last_kmsg print our ring */
+	writel(TEXT, log + 48);
+	writel(LOG_SIZE - TEXT, log + 60);
 	register_console(&ramlog_console);
 	return 0;
 }
