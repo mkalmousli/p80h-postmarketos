@@ -38,8 +38,8 @@ def overlay() -> None:
     if line not in makefile.read_text():
         makefile.write_text(makefile.read_text() + line)
     for p in sorted((KDIR / "patches").glob("*.patch")):
-        if subprocess.run(["git", "-C", SRC, "apply", "--check", "-R", p], capture_output=True).returncode:
-            run("git", "-C", SRC, "apply", p)
+        if not subprocess.run(["git", "-C", SRC, "apply", "--check", p], capture_output=True).returncode:
+            run("git", "-C", SRC, "apply", p)  # a patch that no longer applies is already in (later patches may touch its context)
 
 
 def configure() -> None:

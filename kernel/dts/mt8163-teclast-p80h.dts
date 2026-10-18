@@ -42,5 +42,5 @@
 	bus-width = <8>;
 	max-frequency = <50000000>;
 	non-removable;
-	status = "okay";
+	status = "disabled";	/* bring-up: MSDC0 is driven by mt8163-emmclog.c, keep the mmc core away */
 };

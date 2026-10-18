@@ -48,6 +48,17 @@ def read_log(ch: AgentChannel) -> str:
     return text.decode(errors="replace")
 
 
+def emmc_node(ch: AgentChannel) -> str:
+    return "/dev/" + ch.sh("grep -l PARTNAME=expdb$ /sys/class/block/mmcblk0p*/uevent").split("/")[4]
+
+
+def read_emmc_log(ch: AgentChannel) -> str:
+    """Mainline log written by mt8163-emmclog.c into the first 256 KiB of the expdb partition."""
+    ch.sh("mdev -s 2>/dev/null; true")
+    raw = ch.get(emmc_node(ch), 0, 512 * 512)
+    return raw.replace(b"\0", b"").decode(errors="replace")
+
+
 def try_kernel(image: Path, boot_secs: float = 90) -> str:
     """Returns the kernel release the tablet ended up running; the caller compares it to the stock one."""
     ch = _wait(_agent_up, 300)
@@ -55,6 +66,7 @@ def try_kernel(image: Path, boot_secs: float = 90) -> str:
         raise SystemExit("no agent: power-cycle the tablet so it boots the working boot partition")
     stock = kernel_of(ch)
     ch.sh("mdev -s 2>/dev/null; true")
+    ch.put(emmc_node(ch), bytes(512 * 512))  # clear the log area so stale data is never mistaken for output
     node = "/dev/" + ch.sh("grep -l PARTNAME=recovery$ /sys/class/block/mmcblk0p*/uevent").split("/")[4]
     ch.put(node, image.read_bytes())
     ch.reboot("recovery")
@@ -66,7 +78,7 @@ def try_kernel(image: Path, boot_secs: float = 90) -> str:
     new = _wait(_agent_up, boot_secs)
     if new:
         rel = kernel_of(new)
-        log = read_log(new) if rel == stock else ""
+        log = read_emmc_log(new) if rel == stock else ""
         Path("out").mkdir(exist_ok=True)
         Path("out/last-boot.log").write_text(log)
         return f"{rel} (up after {time.time() - t0:.0f}s), log {len(log)} bytes -> out/last-boot.log"
