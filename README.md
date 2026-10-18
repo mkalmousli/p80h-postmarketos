@@ -17,7 +17,7 @@ State: mainline boots to initramfs, reachable over USB-NCM (`p80hd` at 172.16.42
 | `tests/` | pytest |
 
 ## `docs/` — knowledge (git)
-`architecture.md` diagrams: boot chain, dev loop, channels · `status.md` bring-up log (newest last) · `plan.md` roadmap · `hardware.md` subsystem table · `kernel.md` · `daemon.md` · `guide.md` how-to · `journal/` dated RE notes (`YYYY-MM-DD-topic.md`). Rules: `AGENTS.md` (Python/uv only, files ≤100 LOC).
+`architecture.md` diagrams: boot chain, dev loop, channels · `status.md` bring-up log (newest last) · `todo.md` full driver checklist · `plan.md` short roadmap · `hardware.md` subsystem table · `kernel.md` · `daemon.md` · `guide.md` how-to · `journal/` dated RE notes (`YYYY-MM-DD-topic.md`). Rules: `AGENTS.md` (Python/uv only, files ≤100 LOC).
 
 ## `local/` — big/private, gitignored (MAC/serial/calibration inside)
 | Path | What |
