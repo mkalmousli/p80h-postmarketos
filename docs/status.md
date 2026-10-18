@@ -56,3 +56,8 @@ Hypothesis -> test -> result. One change per run.
 - Hypothesis: panel is GSLx68x (`touchpanel.ic` prop, `gsl_gesture` input in stock) on I2C0 addr 0x40, INT GPIO35, RST GPIO46 (vendor douglas.dts CTP pins); firmware is built into the stock kernel (13 per-panel arrays, C805G_HK = #6) in the vendor (offset,value) pair format that mainline silead.c loads. Mainline `silead` + mt65xx I2C should then give /dev/input/event0.
 - Falsify: no `silead` input device in /proc/bus/input/devices after boot, or i2c timeouts (rail off / pinmux) in dmesg.
 - Result run 78/79: I2C0 (mt8173-i2c, our infracfg gates) works; Silead chip ID 0x50910000 read, firmware (C805G_HK, cut from stock boot.bin by `p80h touchfw`, shipped in the initramfs because probe runs before the rootfs) loads, `silead_ts` = /dev/input/event0, Xorg takes it through libinput. Touch events themselves not yet exercised (IRQ count 0, nobody touched the glass).
+
+## Run 80 - mainline as the default boot image
+- Hypothesis: LK boots our wrapped image from the boot partition exactly as from recovery (no signature check, seen with recovery); with the stock boot image parked in recovery (power+vol-up) a bad build still has a way back, and mainline's persistent daemon lets us keep flashing from mainline itself.
+- Falsify: after `p80h install local/out/recovery-79.img` + reboot, `uname -r` is not 6.12.99 or the daemon never appears.
+- Result run 80: confirmed. `p80h install <wrapped image>` writes stock boot.bin to recovery and the image to boot (readback verified); a normal reboot comes up in 6.12.99 + Openbox with the daemon on 172.16.42.1. New loop: build -> `wrap` -> `install` -> `reboot` (try-kernel is only for a stock-booted tablet). Fallback to stock: power+vol-up (recovery slot), or BROM.

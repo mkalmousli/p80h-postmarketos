@@ -42,6 +42,7 @@ def main(argv: list[str] | None = None) -> None:
     k.add_argument("--rescue", action="store_true", help="park in the initramfs, never mount the rootfs")
     sub.add_parser("wrap", help="kernel-N.bin -> recovery image for try-kernel").add_argument("kernel")
     sub.add_parser("try-kernel", help="flash an image to recovery, boot it, report the kernel").add_argument("image")
+    sub.add_parser("install", help="image -> boot partition, stock boot image -> recovery").add_argument("image")
     sub.add_parser("provision", help="push the openbox session (Xorg fbdev) onto the tablet's rootfs")
     sub.add_parser("touchfw", help="extract the touchscreen firmware from the stock boot.bin")
     sub.add_parser("look", help="photograph the tablet screen with the adb phone and print the OCR text")
@@ -53,6 +54,9 @@ def main(argv: list[str] | None = None) -> None:
     if a.cmd == "release":
         from .release import stage
         return print(stage(a.tag, [Path(f) for f in a.files], a.publish))
+    if a.cmd == "install":
+        from .install import install
+        return print(install(Path(a.image)))
     if a.cmd == "provision":
         from .provision import provision
         return print(provision())

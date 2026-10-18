@@ -10,6 +10,7 @@ Order follows dependency: each phase unlocks the next.
 - ⬜ Verify the stock backup restores (flash-back test of every partition on a spare run) and write `docs/unbrick.md`
 - ⬜ UART pads located + photographed (`docs/hw`), serial console as a second log channel
 - ⬜ Reliable test loop without manual power-cycles (watchdog fallback proven for every failure mode)
+- ✅ Mainline is the default boot image (`p80h install`), stock kernel parked in recovery
 
 ## Phase 1 — Storage (current blocker)
 - ✅ **eMMC/MSDC0**: works via card adoption (patch 0008), partitions + reads OK; real CMD2 enumeration still unsolved (needs RST_n/CMD2 root cause)
