@@ -9,7 +9,7 @@ URL = "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git"
 REPO = Path(__file__).resolve().parents[3]
 KDIR = REPO / "kernel"
 CACHE = Path(os.environ.get("P80H_CACHE", Path.home() / ".cache" / "p80h"))
-SRC = Path(os.environ.get("P80H_LINUX", CACHE / "linux"))
+SRC = Path(os.environ.get("P80H_LINUX", REPO / "trees" / "linux"))
 OUT = CACHE / "build"
 DTS = SRC / "arch/arm64/boot/dts/mediatek"
 MAKE = ["make", "-C", str(SRC), "O=" + str(OUT), "ARCH=arm64", "CROSS_COMPILE=aarch64-linux-gnu-", f"-j{os.cpu_count()}"]

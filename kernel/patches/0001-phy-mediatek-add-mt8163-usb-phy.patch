@@ -1,0 +1,25 @@
+diff --git a/drivers/phy/mediatek/Kconfig b/drivers/phy/mediatek/Kconfig
+index 60e00057e..cd17c1d02 100644
+--- a/drivers/phy/mediatek/Kconfig
++++ b/drivers/phy/mediatek/Kconfig
+@@ -97,3 +97,11 @@ config PHY_MTK_DP
+ 	select GENERIC_PHY
+ 	help
+ 	  Support DisplayPort PHY for MediaTek SoCs.
++
++config PHY_MT8163_USB
++	tristate "MediaTek MT8163 USB2 PHY driver"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	select GENERIC_PHY
++	help
++	  USB2 PHY found inside the MT8163 MUSB block. Ported from the
++	  vendor kernel (see kernel/CREDITS.md in the p80h repo).
+diff --git a/drivers/phy/mediatek/Makefile b/drivers/phy/mediatek/Makefile
+index 1b8088df7..5e9043484 100644
+--- a/drivers/phy/mediatek/Makefile
++++ b/drivers/phy/mediatek/Makefile
+@@ -22,3 +22,4 @@ phy-mtk-mipi-dsi-drv-y			:= phy-mtk-mipi-dsi.o
+ phy-mtk-mipi-dsi-drv-y			+= phy-mtk-mipi-dsi-mt8173.o
+ phy-mtk-mipi-dsi-drv-y			+= phy-mtk-mipi-dsi-mt8183.o
+ obj-$(CONFIG_PHY_MTK_MIPI_DSI)		+= phy-mtk-mipi-dsi-drv.o
++obj-$(CONFIG_PHY_MT8163_USB)		+= phy-mt8163-usb.o

@@ -1,4 +1,5 @@
 """Build the kernel and wrap it the way the MTK bootloader wants: 512-byte KERNEL header + Image.gz + dtb."""
+import shutil
 import struct
 import subprocess
 from pathlib import Path
@@ -23,11 +24,28 @@ def firstlight_list() -> Path:
     return spec
 
 
-def build(initramfs: Path | None, out: Path) -> Path:
+def initramfs_dir(init: Path, failsafe: int = 0) -> Path:
+    """pmOS initramfs unpacked next to the build, with p80hd wired in; the kernel packs the directory itself."""
+    from ..image import agent, initramfs
+    root = tree.OUT / "initramfs-root"
+    shutil.rmtree(root, ignore_errors=True)
+    initramfs.unpack(init.resolve(), root)
+    agent.install(root, agent.compile_agent(tree.OUT / "p80hd"), rescue=False)
+    if failsafe:  # dev builds: hardware-reset back into the known-good boot partition if nobody takes over
+        initramfs.patch_init(root, "start_unudhcpd", f"(sleep {failsafe}; echo b > /proc/sysrq-trigger) &")
+    return root
+
+
+def build(initramfs: Path | None, out: Path, failsafe: int = 0) -> Path:
     tree.fetch()
     tree.overlay()
     tree.configure()
-    src = initramfs.resolve() if initramfs else firstlight_list()
+    if initramfs:  # the kernel opens /dev/console before init runs and the pmOS tree ships an empty /dev
+        nodes = tree.OUT / "nodes.list"
+        nodes.write_text("nod /dev/console 600 0 0 c 5 1\nnod /dev/null 666 0 0 c 1 3\n")
+        src = f"{initramfs_dir(initramfs, failsafe)} {nodes}"
+    else:
+        src = firstlight_list()
     tree.run("scripts/config", "--file", tree.OUT / ".config", "--set-str", "INITRAMFS_SOURCE", src, cwd=tree.SRC)
     tree.run(*tree.MAKE, "olddefconfig", capture_output=True)
     tree.run(*tree.MAKE, "Image.gz", "mediatek/mt8163-teclast-p80h.dtb")

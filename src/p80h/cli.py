@@ -38,10 +38,19 @@ def main(argv: list[str] | None = None) -> None:
     k = sub.add_parser("kernel", help="fetch + build the mainline kernel and wrap it for LK")
     k.add_argument("out")
     k.add_argument("--initramfs", help="cpio.gz built into the kernel")
+    k.add_argument("--failsafe", type=int, default=0, help="dev: reset to the boot partition after N seconds")
+    sub.add_parser("try-kernel", help="flash an image to recovery, boot it, report the kernel").add_argument("image")
+    sub.add_parser("look", help="photograph the tablet screen with the adb phone and print the OCR text")
     a = p.parse_args(argv)
+    if a.cmd == "look":
+        from .look import read_screen
+        return print(read_screen())
+    if a.cmd == "try-kernel":
+        from .trykernel import try_kernel
+        return print(try_kernel(Path(a.image)))
     if a.cmd == "kernel":
         from .kernel.image import build as build_kernel
-        return print(build_kernel(Path(a.initramfs) if a.initramfs else None, Path(a.out)))
+        return print(build_kernel(Path(a.initramfs) if a.initramfs else None, Path(a.out), a.failsafe))
     if a.cmd == "build-boot":
         from .image.build import build_boot
         return print(build_boot(Path(a.initramfs), Path(a.out), Path(a.stock), a.rescue))

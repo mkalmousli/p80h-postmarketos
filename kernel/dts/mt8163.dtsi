@@ -4,12 +4,14 @@
  * Register addresses taken from the vendor device tree (Teclast P80h stock kernel);
  * node layout follows mainline mt8173.dtsi.
  */
+#include <dt-bindings/clock/mt8163-clk.h>
+#include <dt-bindings/reset/mt8173-resets.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/interrupt-controller/irq.h>
 
 / {
 	compatible = "mediatek,mt8163";
-	interrupt-parent = <&gic>;
+	interrupt-parent = <&sysirq>;
 	#address-cells = <2>;
 	#size-cells = <2>;
 
@@ -34,6 +36,15 @@
 		#size-cells = <2>;
 		ranges;
 
+		/* MediaTek interrupt polarity inverter in front of the GIC */
+		sysirq: interrupt-controller@10200620 {
+			compatible = "mediatek,mt8173-sysirq", "mediatek,mt6577-sysirq";
+			interrupt-controller;
+			#interrupt-cells = <3>;
+			interrupt-parent = <&gic>;
+			reg = <0 0x10200620 0 0x20>;
+		};
+
 		gic: interrupt-controller@10220000 {
 			compatible = "arm,gic-400";
 			#interrupt-cells = <3>;
@@ -43,5 +54,115 @@
 			      <0 0x10224000 0 0x2000>, <0 0x10226000 0 0x2000>;
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
 		};
+
+		watchdog: watchdog@10007000 {
+			compatible = "mediatek,mt6589-wdt";
+			reg = <0 0x10007000 0 0x100>;
+			interrupts = <GIC_SPI 128 IRQ_TYPE_EDGE_FALLING>;
+			timeout-sec = <10>;
+		};
+
+		topckgen: clock-controller@10000000 {
+			compatible = "mediatek,mt8163-topckgen";
+			reg = <0 0x10000000 0 0x1000>;
+			#clock-cells = <1>;
+		};
+
+		infracfg: clock-controller@10001000 {
+			compatible = "mediatek,mt8163-infracfg", "syscon";
+			reg = <0 0x10001000 0 0x1000>;
+			#clock-cells = <1>;
+			#reset-cells = <1>;
+		};
+
+		apmixedsys: clock-controller@1000c000 {
+			compatible = "mediatek,mt8163-apmixedsys";
+			reg = <0 0x1000c000 0 0x1000>;
+			#clock-cells = <1>;
+		};
+
+		syscfg_pctl_a: syscon@10005000 {
+			compatible = "mediatek,mt8163-pctl-a-syscfg", "syscon";
+			reg = <0 0x10005000 0 0x1000>;
+		};
+
+		pio: pinctrl@1000b000 {
+			compatible = "mediatek,mt8163-pinctrl";
+			reg = <0 0x1000b000 0 0x1000>;
+			mediatek,pctl-regmap = <&syscfg_pctl_a>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			interrupts = <GIC_SPI 153 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 154 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 155 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		pwrap: pwrap@1000d000 {
+			compatible = "mediatek,mt8173-pwrap";
+			reg = <0 0x1000d000 0 0x1000>;
+			reg-names = "pwrap";
+			interrupts = <GIC_SPI 161 IRQ_TYPE_LEVEL_HIGH>;
+			resets = <&infracfg MT8173_INFRA_PMIC_WRAP_RST>;
+			reset-names = "pwrap";
+			clocks = <&topckgen CLK_TOP_PMICSPI_SEL>, <&infracfg CLK_INFRA_PMIC_AP>;
+			clock-names = "spi", "wrap";
+			status = "disabled";	/* bring-up: the PMIC probe stalls, see docs/status.md */
+
+			pmic: pmic {
+				compatible = "mediatek,mt6323";
+				interrupt-parent = <&pio>;
+				interrupts = <150 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+
+				regulators {
+					compatible = "mediatek,mt6323-regulator";
+				};
+			};
+		};
+
+		mmc0: mmc@11230000 {
+			compatible = "mediatek,mt8173-mmc";
+			reg = <0 0x11230000 0 0x1000>;
+			interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_LOW>;
+			clocks = <&infracfg CLK_INFRA_MSDC3>, <&infracfg CLK_INFRA_MSDC0>;
+			clock-names = "source", "hclk";
+			status = "disabled";
+		};
+
+		usb_phy: usb-phy@11210800 {
+			compatible = "mediatek,mt8163-usb-phy";
+			reg = <0 0x11210800 0 0x100>;
+			clocks = <&apmixedsys CLK_APMIXED_UNIVPLL>, <&infracfg CLK_INFRA_ICUSB>, <&infracfg CLK_INFRA_USB>, <&infracfg CLK_INFRA_USB_MCU>;
+			clock-names = "univpll", "icusb", "main", "mcu";
+			#phy-cells = <0>;
+		};
+
+		usb: usb@11200000 {
+			compatible = "mediatek,mtk-musb";
+			reg = <0 0x11200000 0 0x1000>;
+			interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_LOW>;
+			interrupt-names = "mc";
+			phys = <&usb_phy>;
+			dr_mode = "peripheral";
+			clocks = <&infracfg CLK_INFRA_USB>, <&infracfg CLK_INFRA_USB_MCU>, <&apmixedsys CLK_APMIXED_UNIVPLL>;
+			clock-names = "main", "mcu", "univpll";
+		};
+	};
+
+	clk26m: oscillator-26m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+		clock-output-names = "clk26m";
+	};
+
+	clk32k: oscillator-32k {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <32000>;
+		clock-output-names = "clk32k";
 	};
 };

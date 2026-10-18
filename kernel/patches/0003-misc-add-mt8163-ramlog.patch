@@ -1,0 +1,25 @@
+diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
+index 3fe7e2a9b..520929c72 100644
+--- a/drivers/misc/Kconfig
++++ b/drivers/misc/Kconfig
+@@ -628,4 +628,11 @@ source "drivers/misc/uacce/Kconfig"
+ source "drivers/misc/pvpanic/Kconfig"
+ source "drivers/misc/mchp_pci1xxxx/Kconfig"
+ source "drivers/misc/keba/Kconfig"
++config MT8163_RAMLOG
++	bool "MT8163 firmware ram_console kernel log"
++	depends on ARCH_MEDIATEK
++	help
++	  Mirrors the kernel log into the preloader/LK ram_console DRAM area so a
++	  vendor kernel can read it via /proc/last_kmsg after a reset (bring-up aid).
++
+ endmenu
+diff --git a/drivers/misc/Makefile b/drivers/misc/Makefile
+index a9f94525e..d034e7e1b 100644
+--- a/drivers/misc/Makefile
++++ b/drivers/misc/Makefile
+@@ -72,3 +72,4 @@ obj-$(CONFIG_TPS6594_PFSM)	+= tps6594-pfsm.o
+ obj-$(CONFIG_NSM)		+= nsm.o
+ obj-$(CONFIG_MARVELL_CN10K_DPI)	+= mrvl_cn10k_dpi.o
+ obj-y				+= keba/
++obj-$(CONFIG_MT8163_RAMLOG)	+= mt8163-ramlog.o

@@ -1,0 +1,34 @@
+diff --git a/drivers/clk/mediatek/Kconfig b/drivers/clk/mediatek/Kconfig
+index 486401e1f..5c65395c7 100644
+--- a/drivers/clk/mediatek/Kconfig
++++ b/drivers/clk/mediatek/Kconfig
+@@ -483,6 +483,15 @@ config COMMON_CLK_MT8167_VDECSYS
+ 	help
+ 	  This driver supports MediaTek MT8167 vdecsys clocks.
+ 
++config COMMON_CLK_MT8163
++	tristate "Clock driver for MediaTek MT8163"
++	depends on ARM64 || COMPILE_TEST
++	select COMMON_CLK_MEDIATEK
++	default ARCH_MEDIATEK
++	help
++	  This driver supports the MediaTek MT8163 apmixedsys, topckgen and
++	  infracfg clocks.
++
+ config COMMON_CLK_MT8173
+ 	tristate "Clock driver for MediaTek MT8173"
+ 	depends on ARM64 || COMPILE_TEST
+diff --git a/drivers/clk/mediatek/Makefile b/drivers/clk/mediatek/Makefile
+index eeccfa039..3f4912430 100644
+--- a/drivers/clk/mediatek/Makefile
++++ b/drivers/clk/mediatek/Makefile
+@@ -74,6 +74,9 @@ obj-$(CONFIG_COMMON_CLK_MT8167_IMGSYS) += clk-mt8167-img.o
+ obj-$(CONFIG_COMMON_CLK_MT8167_MFGCFG) += clk-mt8167-mfgcfg.o
+ obj-$(CONFIG_COMMON_CLK_MT8167_MMSYS) += clk-mt8167-mm.o
+ obj-$(CONFIG_COMMON_CLK_MT8167_VDECSYS) += clk-mt8167-vdec.o
++obj-$(CONFIG_COMMON_CLK_MT8163) += clk-mt8163-apmixedsys.o clk-mt8163-topckgen.o clk-mt8163-infracfg.o \
++				   clk-mt8163-top-divs.o clk-mt8163-top-muxes-a.o clk-mt8163-top-muxes-b.o \
++				   clk-mt8163-top-muxes-c.o clk-mt8163-infra-gates.o clk-mt8163-infra-muxes.o
+ obj-$(CONFIG_COMMON_CLK_MT8173) += clk-mt8173-apmixedsys.o clk-mt8173-infracfg.o \
+ 				   clk-mt8173-pericfg.o clk-mt8173-topckgen.o
+ obj-$(CONFIG_COMMON_CLK_MT8173_IMGSYS) += clk-mt8173-img.o

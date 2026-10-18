@@ -7,7 +7,7 @@
 	compatible = "teclast,p80h", "mediatek,mt8163";
 
 	chosen {
-		bootargs = "console=tty0 clk_ignore_unused pd_ignore_unused";
+		bootargs = "console=tty0 clk_ignore_unused pd_ignore_unused panic=10 initcall_debug ignore_loglevel";
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
@@ -35,4 +35,11 @@
 
 		atf@43000000 { reg = <0 0x43000000 0 0x30000>; no-map; };
 	};
+};
+
+&mmc0 {
+	bus-width = <8>;
+	max-frequency = <50000000>;
+	non-removable;
+	status = "okay";
 };

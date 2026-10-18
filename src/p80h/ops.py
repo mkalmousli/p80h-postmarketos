@@ -1,4 +1,5 @@
 """Operations that need the p80hd agent: files, partitions, screenshots, input. Mixed into Tablet."""
+import hashlib
 from pathlib import Path
 
 from . import inputs
@@ -23,11 +24,13 @@ class AgentOps:
         return "/dev/" + self.sh(cmd).split("/")[4]
 
     def flash(self, name: str, data: bytes) -> None:
-        """Write a partition through the agent and verify by reading back its size."""
+        """Write a partition through the agent and verify with a sha256 of the written range."""
         node = self.partition(name)
         self.put(node, data)
-        if len(self.get(node)[: len(data)]) != len(data):
-            raise OSError(f"flash {name}: readback short")
+        want = hashlib.sha256(data).hexdigest()
+        got = self.sh(f"head -c {len(data)} {node} | sha256sum").split()[0]
+        if got != want:
+            raise OSError(f"flash {name}: verify failed ({got[:8]} != {want[:8]})")
 
     def screenshot(self) -> bytes:
         """PNG of the current framebuffer page (yoffset read from the driver)."""

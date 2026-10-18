@@ -23,4 +23,4 @@ def install(root: Path, binary: Path, rescue: bool) -> None:
     shutil.copy(binary, dest)
     dest.chmod(0o755)
     park = "\nwhile true; do sleep 1; done" if rescue else ""
-    initramfs.patch_init(root, "start_unudhcpd", "# no devtmpfs in this kernel: create block/input nodes ourselves\nmdev -s 2>/dev/null\nmkdir -p /dev/pts; mount -t devpts devpts /dev/pts 2>/dev/null\n/sbin/p80hd &" + park)
+    initramfs.patch_init(root, "start_unudhcpd", "# no devtmpfs in this kernel: create block/input nodes ourselves\nmdev -s 2>/dev/null\nmkdir -p /dev/input\n(while :; do echo > /dev/watchdog0 2>/dev/null; sleep 4; done) &\nmkdir -p /dev/pts; mount -t devpts devpts /dev/pts 2>/dev/null\n/sbin/p80hd &" + park)

@@ -1,0 +1,24 @@
+diff --git a/drivers/watchdog/mtk_wdt.c b/drivers/watchdog/mtk_wdt.c
+index 91d110646..1b9d3f647 100644
+--- a/drivers/watchdog/mtk_wdt.c
++++ b/drivers/watchdog/mtk_wdt.c
+@@ -285,6 +285,8 @@ static int mtk_wdt_set_timeout(struct watchdog_device *wdt_dev,
+ 	return 0;
+ }
+ 
++static int mtk_wdt_start(struct watchdog_device *wdt_dev);
++
+ static void mtk_wdt_init(struct watchdog_device *wdt_dev)
+ {
+ 	struct mtk_wdt_dev *mtk_wdt = watchdog_get_drvdata(wdt_dev);
+@@ -295,6 +297,10 @@ static void mtk_wdt_init(struct watchdog_device *wdt_dev)
+ 	if (readl(wdt_base + WDT_MODE) & WDT_MODE_EN) {
+ 		set_bit(WDOG_HW_RUNNING, &wdt_dev->status);
+ 		mtk_wdt_set_timeout(wdt_dev, wdt_dev->timeout);
++	} else if (of_property_read_bool(wdt_dev->parent->of_node, "p80h,start-at-probe")) {
++		/* bring-up aid: a hung kernel gets reset back into the bootloader */
++		mtk_wdt_start(wdt_dev);
++		set_bit(WDOG_HW_RUNNING, &wdt_dev->status);
+ 	}
+ }
+ 

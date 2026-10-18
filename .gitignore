@@ -8,3 +8,4 @@ port/pmaports/device/testing/linux-teclast-p80h/Image
 port/stock/*.stock
 __pycache__/
 .venv/
+trees/
