@@ -39,6 +39,7 @@ def main(argv: list[str] | None = None) -> None:
     k.add_argument("out")
     k.add_argument("--initramfs", help="cpio.gz built into the kernel")
     k.add_argument("--failsafe", type=int, default=0, help="dev: reset to the boot partition after N seconds")
+    k.add_argument("--rescue", action="store_true", help="park in the initramfs, never mount the rootfs")
     sub.add_parser("wrap", help="kernel-N.bin -> recovery image for try-kernel").add_argument("kernel")
     sub.add_parser("try-kernel", help="flash an image to recovery, boot it, report the kernel").add_argument("image")
     sub.add_parser("look", help="photograph the tablet screen with the adb phone and print the OCR text")
@@ -63,7 +64,7 @@ def main(argv: list[str] | None = None) -> None:
         return print(try_kernel(Path(a.image)))
     if a.cmd == "kernel":
         from .kernel.image import build as build_kernel
-        return print(build_kernel(Path(a.initramfs) if a.initramfs else None, Path(a.out), a.failsafe))
+        return print(build_kernel(Path(a.initramfs) if a.initramfs else None, Path(a.out), a.failsafe, a.rescue))
     if a.cmd == "build-boot":
         from .image.build import build_boot
         return print(build_boot(Path(a.initramfs), Path(a.out), Path(a.stock), a.rescue))

@@ -39,3 +39,7 @@ Hypothesis -> test -> result. One change per run.
 - Result 69: cap-mmc-hw-reset (uncommitted dts change from run 68) makes the core RST_n-reset the card in mmc_init_card, undoing the adoption; CMD10 timed out. Reverted for run 70.
 - Result 70-72: eMMC WORKS on mainline. Adopting the bootloader's card (patch 0008) + the core's own enumeration reads CID/CSD/EXT_CSD, partitions appear (24 + boot0/1/rpmb), reads OK. Auto-hang in earlier runs came from starting enumeration at probe time; it is now started by the initramfs once USB is up (`echo 1 > /sys/module/mtk_sd/parameters/go`).
 - Next: rootfs onto userdata (p23), boot pmOS by label.
+
+## Run 74 (watchdog)
+- Hypothesis: the tablet always resets ~26 s after boot because mtk-wdt probe fails (-22, GIC rejects EDGE_FALLING) so nothing feeds the dog LK armed; this, not the eMMC write path, killed the writes. Falsified if it still dies at ~26 s with wdt probed.
+

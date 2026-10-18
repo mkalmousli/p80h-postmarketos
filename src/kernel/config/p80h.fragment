@@ -63,7 +63,7 @@ CONFIG_MAGIC_SYSRQ=y
 CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y
 CONFIG_WATCHDOG_OPEN_TIMEOUT=0
 CONFIG_MT8163_RAMLOG=y
-CONFIG_CMDLINE="console=tty0 clk_ignore_unused pd_ignore_unused regulator_ignore_unused initcall_debug dyndbg=\"file mtk-sd.c +p\" panic=10 ignore_loglevel"
+CONFIG_CMDLINE="console=tty0 clk_ignore_unused pd_ignore_unused regulator_ignore_unused panic=10 loglevel=5"
 CONFIG_CMDLINE_FORCE=y
 CONFIG_COMMON_CLK_MT8163=y
 CONFIG_COMMON_CLK_MEDIATEK=y
