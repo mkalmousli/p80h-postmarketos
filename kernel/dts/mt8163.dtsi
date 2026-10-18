@@ -130,11 +130,11 @@
 		};
 
 		mmc0: mmc@11230000 {
-			compatible = "mediatek,mt8173-mmc";
+			compatible = "mediatek,mt2701-mmc";	/* same controller revision as the vendor mt8163 tag */
 			reg = <0 0x11230000 0 0x1000>;
 			interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_LOW>;
-			clocks = <&infracfg CLK_INFRA_MSDC3>, <&infracfg CLK_INFRA_MSDC0>;
-			clock-names = "source", "hclk";
+			clocks = <&topckgen CLK_TOP_MSDC30_0_SEL>, <&infracfg CLK_INFRA_MSDC0>, <&infracfg CLK_INFRA_MSDC3>;
+			clock-names = "source", "hclk", "source_cg";
 			status = "disabled";
 		};
 

@@ -26,3 +26,9 @@ Hypothesis -> test -> result. One change per run.
 - Host never saw the gadget until the PHY sequence also applied the vendor *recover* steps (clear forced-state bits 0x68/0x69/0x6a, VBUS comparator 0x1a bit4, 0x1d bit4).
 - Result: `6.12.99-p80h (up after 14s)`, host gets a cdc_ncm interface, p80hd answers on 172.16.42.1:4444.
 - Log channel that made this possible: `mt8163-emmclog.c` (raw eMMC sectors of expdb, polled MSDC0 PIO) read back by `try-kernel`.
+
+## Runs 36-50 - eMMC does not enumerate on mainline (open)
+- Needed so far: `vmmc` fixed 3.0 V (card OCR 0x00078000), empty pinctrl states, clocks as the vendor tree (`msdc30_0_sel` source, `infra_msdc0` hclk, `infra_msdc3` source_cg), compatible `mediatek,mt2701-mmc` (same flags as the vendor mt8163 tag: 12-bit divider, async FIFO, PAD_TUNE0).
+- Trace (patch 0008 prints every command): CMD0/CMD1 fine (OCR `c0078000`), CMD2 completes with RESP = ffffffff x4 (no start bit seen), CMD3 times out. The card most likely never answers CMD2, i.e. it is not receiving our commands correctly (CMD0/CMD1 do not need a valid CRC).
+- Ruled out: CMDRRDLY/CMDRDLY sweep, PATCH_BIT1/PATCH_BIT2 set to the bootloader's values, pulls from the vendor dts, source clock choice. Bootloader register state is dumped at probe (`p80h: lk ...`): SDC_CFG bus width 8, PATCH_BIT2 04809801.
+- IOCON bit 1 (response sample edge) and some PAD_TUNE values hang the tablet (interrupt storm), the watchdog then falls back to stock.

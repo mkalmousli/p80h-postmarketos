@@ -38,9 +38,47 @@
 	};
 };
 
+/* placeholder: no PMIC driver yet and the bootloader left the eMMC rail on. The core derives the host OCR mask
+ * from this regulator and the card only advertises 2.7-3.1 V. */
+&{/} {
+	vmmc: regulator-vmmc {
+		compatible = "regulator-fixed";
+		regulator-name = "vmmc";
+		regulator-min-microvolt = <3000000>;
+		regulator-max-microvolt = <3000000>;
+		regulator-always-on;
+	};
+};
+
+&pio {
+	/* pinmux cell = (pin << 8) | function, as in the vendor tree; pulls as the vendor board file sets them */
+	mmc0_pins: mmc0 {
+		pins-cmd-dat {
+			pinmux = <0x8901>, <0x8801>, <0x8701>, <0x8601>, <0x8201>, <0x8101>, <0x8001>, <0x7f01>, <0x8401>;
+			input-enable;
+			bias-pull-up;
+		};
+		pins-clk {
+			pinmux = <0x8501>;
+			bias-pull-down;
+		};
+		pins-rst {
+			pinmux = <0x8301>;
+			bias-pull-up;
+		};
+	};
+};
+
 &mmc0 {
+	vmmc-supply = <&vmmc>;
 	bus-width = <8>;
 	max-frequency = <50000000>;
 	non-removable;
-	status = "disabled";	/* bring-up: MSDC0 is driven by mt8163-emmclog.c, keep the mmc core away */
+	pinctrl-names = "default", "state_uhs";
+	pinctrl-0 = <&mmc0_pins>;
+	pinctrl-1 = <&mmc0_pins>;
+	cap-mmc-highspeed;
+	no-sd;
+	no-sdio;
+	status = "okay";
 };
