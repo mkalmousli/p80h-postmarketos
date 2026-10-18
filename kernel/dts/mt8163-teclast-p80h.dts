@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-2.0
+/dts-v1/;
+#include "mt8163.dtsi"
+
+/ {
+	model = "Teclast P80h";
+	compatible = "teclast,p80h", "mediatek,mt8163";
+
+	chosen {
+		bootargs = "console=tty0 clk_ignore_unused pd_ignore_unused";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* the panel is already lit by the bootloader (LK), keep scanning out its buffer */
+		framebuffer@7ec00000 {
+			compatible = "simple-framebuffer";
+			reg = <0 0x7ec00000 0 0x3e8000>;
+			width = <800>;
+			height = <1280>;
+			stride = <3200>;
+			format = "a8r8g8b8";
+		};
+	};
+
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0 0x40000000 0 0x3e800000>;
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		atf@43000000 { reg = <0 0x43000000 0 0x30000>; no-map; };
+	};
+};

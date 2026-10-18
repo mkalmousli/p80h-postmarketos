@@ -35,7 +35,13 @@ def main(argv: list[str] | None = None) -> None:
     b.add_argument("out")
     b.add_argument("--stock", default="port/stock", help="dir with bootimg.cfg + zImage.stock")
     b.add_argument("--rescue", action="store_true", help="park in the initramfs, never mount the rootfs")
+    k = sub.add_parser("kernel", help="fetch + build the mainline kernel and wrap it for LK")
+    k.add_argument("out")
+    k.add_argument("--initramfs", help="cpio.gz built into the kernel")
     a = p.parse_args(argv)
+    if a.cmd == "kernel":
+        from .kernel.image import build as build_kernel
+        return print(build_kernel(Path(a.initramfs) if a.initramfs else None, Path(a.out)))
     if a.cmd == "build-boot":
         from .image.build import build_boot
         return print(build_boot(Path(a.initramfs), Path(a.out), Path(a.stock), a.rescue))
