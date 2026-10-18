@@ -106,6 +106,8 @@
 		touchscreen-size-x = <800>;
 		touchscreen-size-y = <1280>;
 		firmware-name = "gsl1680-teclast-p80h.fw";
+		vddio-supply = <&mt6323_vgp2_reg>;
+		avdd-supply = <&mt6323_vgp2_reg>;
 		silead,max-fingers = <5>;
 	};
 };
@@ -130,7 +132,8 @@
 };
 
 &mmc1 {
-	vmmc-supply = <&vmmc>;
+	vmmc-supply = <&mt6323_vmch_reg>;
+	vqmmc-supply = <&mt6323_vmc_reg>;
 	bus-width = <4>;
 	max-frequency = <50000000>;
 	cap-sd-highspeed;

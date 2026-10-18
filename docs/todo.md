@@ -30,7 +30,7 @@ Order follows dependency: each phase unlocks the next.
 - ⬜ Mainline DTS: `mt8163-teclast-p80h.dts` complete and cleaned, no vendor hacks; patch series upstreamed
 
 ## Phase 3 — Power & PMIC
-- ⬜ **PMIC (MT6323 via pwrap)** probe — currently stalls and is disabled; regulators, RTC, keys, ADC, LDO/buck consumers
+- ✅ PMIC MT6323 via pwrap: regulators, RTC, power key; (ADC/charger/fuel gauge still todo)
 - ⬜ Battery fuel gauge + charger (bq24296?): charging, % and health, USB-OTG power, charge-while-off
 - ⬜ Power key / volume keys (mtk-kpd), long-press power-off
 - ⬜ Suspend-to-RAM and resume with wakeups (power key, USB, RTC); runtime PM

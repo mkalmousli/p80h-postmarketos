@@ -66,3 +66,8 @@ Hypothesis -> test -> result. One change per run.
 - Hypothesis: mmc1 at 0x11240000 (IRQ 80, pins 121-126, card detect GPIO49 active-low, from the vendor douglas.dts) works unmodified in mtk-sd; the adopt hack must only apply to the non-removable host (patch 0008 now gates on MMC_CAP_NONREMOVABLE). Rail VMCH assumed enabled/placeholder.
 - Falsify: `/sys/class/mmc_host/mmc1` missing, or with a card inserted no mmcblk1 appears / CMD timeouts in dmesg, or eMMC (mmc0) stops enumerating.
 - Result run 81/82: `mmc1` registers (needs the state_uhs pinctrl entry too), eMMC unaffected. No card in the slot, so card enumeration is unverified.
+
+## Run 83 - PMIC consumers
+- State: mt6323 regulator driver already probes (chip ID 0x2023, 30 regulators, unnamed). Hypothesis: named regulator subnodes (vendor names from douglas.dts) plus keys/rtc/pwrc nodes make the power key, RTC and poweroff work, and touch/SD get real rails (vgp2, vmch/vmc).
+- Falsify: no `mtk-pmic-keys` input or /dev/rtc0, touch or mmc1 probe regressions, tablet hangs at boot.
+- Result run 83: confirmed. mtk-pmic-keys input, /dev/rtc0 (mt6323-rtc), named regulators; touch and SD use vgp2/vmch/vmc; touch still probes. Note: `install` readback of a 16 MiB partition can exceed the daemon timeout once; rerun.
