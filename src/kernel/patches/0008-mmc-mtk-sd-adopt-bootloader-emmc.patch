@@ -1,6 +1,8 @@
+diff --git a/drivers/mmc/host/mtk-sd.c b/drivers/mmc/host/mtk-sd.c
+index be9954f5b..ab29875b4 100644
 --- a/drivers/mmc/host/mtk-sd.c
 +++ b/drivers/mmc/host/mtk-sd.c
-@@ -424,6 +424,7 @@
+@@ -424,6 +424,7 @@ struct msdc_delay_phase {
  };
  
  struct msdc_host {
@@ -8,7 +10,15 @@
  	struct device *dev;
  	const struct mtk_mmc_compatible *dev_comp;
  	int cmd_rsp;
-@@ -1343,10 +1344,91 @@
+@@ -1253,6 +1254,7 @@ static bool msdc_cmd_done(struct msdc_host *host, int events,
+ 			host->error |= REQ_CMD_TMO;
+ 		}
+ 	}
++	dev_dbg(host->dev, "p80h: cmd%d arg=%08x rsp=%08x err=%d\n", cmd->opcode, cmd->arg, rsp[0], cmd->error);
+ 	if (cmd->error)
+ 		dev_dbg(host->dev,
+ 				"%s: cmd=%d arg=%08X; rsp %08X; cmd_error=%d\n",
+@@ -1343,10 +1345,91 @@ static void msdc_cmd_next(struct msdc_host *host,
  		msdc_start_data(host, cmd, cmd->data);
  }
  
@@ -100,12 +110,34 @@
  	host->error = 0;
  	WARN_ON(host->mrq);
  	host->mrq = mrq;
-@@ -2936,6 +3018,8 @@
+@@ -2749,6 +2832,17 @@ static int msdc_of_clock_parse(struct platform_device *pdev,
+ 	return 0;
+ }
+ 
++static struct msdc_host *p80h_host;
++
++static int p80h_go(const char *val, const struct kernel_param *kp)
++{
++	if (!p80h_host)
++		return -ENODEV;
++	msdc_adopt_card(p80h_host);
++	return mmc_add_host(mmc_from_priv(p80h_host));
++}
++module_param_call(go, p80h_go, NULL, NULL, 0200);
++
+ static int msdc_drv_probe(struct platform_device *pdev)
+ {
+ 	struct mmc_host *mmc;
+@@ -2936,11 +3030,7 @@ static int msdc_drv_probe(struct platform_device *pdev)
  	pm_runtime_set_autosuspend_delay(host->dev, MTK_MMC_AUTOSUSPEND_DELAY);
  	pm_runtime_use_autosuspend(host->dev);
  	pm_runtime_enable(host->dev);
-+	msdc_adopt_card(host);
-+
- 	ret = mmc_add_host(mmc);
- 
- 	if (ret)
+-	ret = mmc_add_host(mmc);
+-
+-	if (ret)
+-		goto end;
+-
++	p80h_host = host;	/* bring-up: enumeration starts on `echo 1 > /sys/module/mtk_sd/parameters/go` */
+ 	return 0;
+ end:
+ 	pm_runtime_disable(host->dev);

@@ -31,6 +31,7 @@ def initramfs_dir(init: Path, failsafe: int = 0) -> Path:
     shutil.rmtree(root, ignore_errors=True)
     initramfs.unpack(init.resolve(), root)
     daemon.install(root, daemon.compile_daemon(tree.OUT / "p80hd"), rescue=False)
+    initramfs.patch_init(root, "start_unudhcpd", "echo 1 > /sys/module/mtk_sd/parameters/go  # start eMMC enumeration once USB is up")
     if failsafe:  # dev builds: hardware-reset back into the known-good boot partition if nobody takes over
         initramfs.patch_init(root, "start_unudhcpd", f"(sleep {failsafe}; echo b > /proc/sysrq-trigger) &")
     return root

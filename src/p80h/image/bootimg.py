@@ -22,3 +22,13 @@ def build(gz_ramdisk: bytes, out: Path, stock: Path, cmdline_extra: str = "") ->
         out.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(["abootimg", "--create", str(out), "-f", str(cfg_file), "-k", str(stock / "zImage.stock"),
                         "-r", str(rd)], check=True, capture_output=True)
+
+
+def wrap_kernel(kernel: Path, out: Path, stock: Path) -> None:
+    """Dev image for the recovery partition: our kernel (initramfs built in) plus a token ramdisk."""
+    import gzip
+    with tempfile.TemporaryDirectory() as d:
+        rd = Path(d, "rd.mtk")
+        rd.write_bytes(mtk_ramdisk(gzip.compress(b"")))
+        subprocess.run(["abootimg", "--create", str(out), "-f", str(stock / "bootimg.cfg"), "-k", str(kernel),
+                        "-r", str(rd)], check=True, capture_output=True)

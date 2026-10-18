@@ -12,7 +12,7 @@ Order follows dependency: each phase unlocks the next.
 - ⬜ Reliable test loop without manual power-cycles (watchdog fallback proven for every failure mode)
 
 ## Phase 1 — Storage (current blocker)
-- 🔧 **eMMC/MSDC0**: CMD2 gets no response (CMD0/1 fine). Next: compare pad/driver-strength & clock-phase regs with stock (`local/trees/kernel_douglas`), check IOCON/PAD_TUNE, voltage rail (vemc) sequencing, 8-bit DDR/HS200/HS400 tuning
+- ✅ **eMMC/MSDC0**: works via card adoption (patch 0008), partitions + reads OK; real CMD2 enumeration still unsolved (needs RST_n/CMD2 root cause)
 - ⬜ Rootfs on `userdata`, mount by label, `switch_root` to Alpine
 - ⬜ Partition layout for Alpine (keep stock partitions restorable); resize/ext4/f2fs
 - ⬜ SD card (MSDC1) + hotplug detect, SDIO bus for Wi-Fi if used

@@ -39,6 +39,7 @@ def main(argv: list[str] | None = None) -> None:
     k.add_argument("out")
     k.add_argument("--initramfs", help="cpio.gz built into the kernel")
     k.add_argument("--failsafe", type=int, default=0, help="dev: reset to the boot partition after N seconds")
+    sub.add_parser("wrap", help="kernel-N.bin -> recovery image for try-kernel").add_argument("kernel")
     sub.add_parser("try-kernel", help="flash an image to recovery, boot it, report the kernel").add_argument("image")
     sub.add_parser("look", help="photograph the tablet screen with the adb phone and print the OCR text")
     r = sub.add_parser("release", help="stage built images + SHA256SUMS for a public GitHub release")
@@ -52,6 +53,11 @@ def main(argv: list[str] | None = None) -> None:
     if a.cmd == "look":
         from .look import read_screen
         return print(read_screen())
+    if a.cmd == "wrap":
+        from .image.bootimg import wrap_kernel
+        out = Path(a.kernel.replace("kernel-", "recovery-").replace(".bin", ".img"))
+        wrap_kernel(Path(a.kernel), out, Path("src/port/stock"))
+        return print(out)
     if a.cmd == "try-kernel":
         from .trykernel import try_kernel
         return print(try_kernel(Path(a.image)))

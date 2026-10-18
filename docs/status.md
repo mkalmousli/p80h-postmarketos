@@ -32,3 +32,10 @@ Hypothesis -> test -> result. One change per run.
 - Trace (patch 0008 prints every command): CMD0/CMD1 fine (OCR `c0078000`), CMD2 completes with RESP = ffffffff x4 (no start bit seen), CMD3 times out. The card most likely never answers CMD2, i.e. it is not receiving our commands correctly (CMD0/CMD1 do not need a valid CRC).
 - Ruled out: CMDRRDLY/CMDRDLY sweep, PATCH_BIT1/PATCH_BIT2 set to the bootloader's values, pulls from the vendor dts, source clock choice. Bootloader register state is dumped at probe (`p80h: lk ...`): SDC_CFG bus width 8, PATCH_BIT2 04809801.
 - IOCON bit 1 (response sample edge) and some PAD_TUNE values hang the tablet (interrupt storm), the watchdog then falls back to stock.
+
+## Run 69 (adopt + full command trace)
+- Hypothesis: with the bootloader's card adopted (HEAD patch 0008) the core's CMD9/CMD7 work (run 67), and the later failure is a specific command; a per-command trace (`p80h: cmdN arg rsp err`) names it. Falsified if the card enumerates or the trace shows no command after CMD3.
+- Result 69: cap-mmc-hw-reset (uncommitted dts change from run 68) makes the core RST_n-reset the card in mmc_init_card, undoing the adoption; CMD10 timed out. Reverted for run 70.
+- Result 69: cap-mmc-hw-reset (uncommitted dts change from run 68) makes the core RST_n-reset the card in mmc_init_card, undoing the adoption; CMD10 timed out. Reverted for run 70.
+- Result 70-72: eMMC WORKS on mainline. Adopting the bootloader's card (patch 0008) + the core's own enumeration reads CID/CSD/EXT_CSD, partitions appear (24 + boot0/1/rpmb), reads OK. Auto-hang in earlier runs came from starting enumeration at probe time; it is now started by the initramfs once USB is up (`echo 1 > /sys/module/mtk_sd/parameters/go`).
+- Next: rootfs onto userdata (p23), boot pmOS by label.
