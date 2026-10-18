@@ -43,3 +43,6 @@ Hypothesis -> test -> result. One change per run.
 ## Run 74 (watchdog)
 - Hypothesis: the tablet always resets ~26 s after boot because mtk-wdt probe fails (-22, GIC rejects EDGE_FALLING) so nothing feeds the dog LK armed; this, not the eMMC write path, killed the writes. Falsified if it still dies at ~26 s with wdt probed.
 
+
+## Run 76
+- Mainline switch_root'd into the userdata pmOS (ext4 mounts) then reset ~10 s later: the init's `echo > /dev/watchdog0` loop took the dog away from the kernel pinger ("watchdog did not stop") and died with the initramfs. Removed the loop; the kernel pings HW_RUNNING dogs until userspace opens one. Falsified if it still resets ~10 s after switch_root.
