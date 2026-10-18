@@ -45,7 +45,7 @@ Order follows dependency: each phase unlocks the next.
 ## Phase 5 — Display & input
 - ⬜ Display pipeline (mmsys/ovl/rdma/dsi) + panel `c805_zs_hx8394a01_inx_wxga_ips_8` (HX8394 over DSI) via DRM/KMS; simplefb as interim
 - ⬜ Backlight (PWM/PMIC) with brightness control, panel power sequencing, blank/unblank
-- ⬜ Touchscreen: Silead **GSL** controller (I2C) — multitouch, firmware load, wake-on-touch
+- ✅ (probe+fw+X input; touch events unverified) Touchscreen: Silead **GSL** controller (I2C) — multitouch, firmware load, wake-on-touch
 - ⬜ Accelerometer (MIR3DA) → auto-rotate (iio + `iio-sensor-proxy`), correct mount matrix
 - ⬜ Other sensors ❓ (ALS/proximity, magnetometer, gyro): identify, then driver or document "absent"
 - ⬜ Console on screen (fbcon/VT) and a graphical stack: Wayland (sway/phosh/weston) or X11 with GPU/fbdev

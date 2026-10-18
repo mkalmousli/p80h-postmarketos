@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
 #include "mt8163.dtsi"
 
 / {
@@ -66,6 +67,15 @@
 	};
 };
 
+&pio {
+	i2c0_pins: i2c0 {
+		pins {
+			pinmux = <0x4b01>, <0x4c01>;
+			bias-disable;
+		};
+	};
+};
+
 &mmc0 {
 	vmmc-supply = <&vmmc>;
 	bus-width = <8>;
@@ -78,4 +88,24 @@
 	no-sd;
 	no-sdio;
 	status = "okay";
+};
+
+&i2c0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c0_pins>;
+	clock-frequency = <400000>;
+	status = "okay";
+
+	/* Silead GSLx68x; INT = GPIO35, RST = GPIO46, rail VGP2 (left on by the bootloader, no PMIC driver yet) */
+	touchscreen@40 {
+		compatible = "silead,gsl1680";
+		reg = <0x40>;
+		interrupt-parent = <&pio>;
+		interrupts = <35 IRQ_TYPE_EDGE_FALLING>;
+		power-gpios = <&pio 46 GPIO_ACTIVE_HIGH>;
+		touchscreen-size-x = <800>;
+		touchscreen-size-y = <1280>;
+		firmware-name = "gsl1680-teclast-p80h.fw";
+		silead,max-fingers = <5>;
+	};
 };

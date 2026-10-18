@@ -51,3 +51,8 @@ Hypothesis -> test -> result. One change per run.
 - Mainline 6.12.99 switch_roots into the pmOS rootfs on userdata (p23, ext4 label pmOS_root, flashed + sha256-verified over the daemon), OpenRC comes up, `p80h provision` pushes xorg.conf (fbdev on simplefb), `/etc/local.d/openbox.start` (Xorg on vt7 + openbox-session) and an xterm autostart. After a cold `try-kernel` Xorg+openbox+xterm start by themselves; fb0 readback shows the xterm.
 - Root causes found on the way: mtk-wdt probe failed (-22, GIC rejects edge-falling) so the dog LK armed reset the tablet ~26 s after boot; the init's `echo > /dev/watchdog0` loop then stole the dog from the kernel's pinger and died at switch_root.
 - Known flake: the first `try-kernel` after a mainline run sometimes lands in the stock-kernel boot partition; repeating works.
+
+## Run 78 - touchscreen (Silead GSLx68x)
+- Hypothesis: panel is GSLx68x (`touchpanel.ic` prop, `gsl_gesture` input in stock) on I2C0 addr 0x40, INT GPIO35, RST GPIO46 (vendor douglas.dts CTP pins); firmware is built into the stock kernel (13 per-panel arrays, C805G_HK = #6) in the vendor (offset,value) pair format that mainline silead.c loads. Mainline `silead` + mt65xx I2C should then give /dev/input/event0.
+- Falsify: no `silead` input device in /proc/bus/input/devices after boot, or i2c timeouts (rail off / pinmux) in dmesg.
+- Result run 78/79: I2C0 (mt8173-i2c, our infracfg gates) works; Silead chip ID 0x50910000 read, firmware (C805G_HK, cut from stock boot.bin by `p80h touchfw`, shipped in the initramfs because probe runs before the rootfs) loads, `silead_ts` = /dev/input/event0, Xorg takes it through libinput. Touch events themselves not yet exercised (IRQ count 0, nobody touched the glass).

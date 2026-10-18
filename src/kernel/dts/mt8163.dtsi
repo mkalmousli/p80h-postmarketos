@@ -128,6 +128,18 @@
 			};
 		};
 
+		i2c0: i2c@11007000 {
+			compatible = "mediatek,mt8173-i2c";
+			reg = <0 0x11007000 0 0x70>, <0 0x11000180 0 0x80>;
+			interrupts = <GIC_SPI 84 IRQ_TYPE_LEVEL_LOW>;
+			clock-div = <8>;
+			clocks = <&infracfg CLK_INFRA_I2C0>, <&infracfg CLK_INFRA_AP_DMA>;
+			clock-names = "main", "dma";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
 		mmc0: mmc@11230000 {
 			compatible = "mediatek,mt2701-mmc";	/* same controller revision as the vendor mt8163 tag */
 			reg = <0 0x11230000 0 0x1000>;

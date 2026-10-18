@@ -43,6 +43,7 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("wrap", help="kernel-N.bin -> recovery image for try-kernel").add_argument("kernel")
     sub.add_parser("try-kernel", help="flash an image to recovery, boot it, report the kernel").add_argument("image")
     sub.add_parser("provision", help="push the openbox session (Xorg fbdev) onto the tablet's rootfs")
+    sub.add_parser("touchfw", help="extract the touchscreen firmware from the stock boot.bin")
     sub.add_parser("look", help="photograph the tablet screen with the adb phone and print the OCR text")
     r = sub.add_parser("release", help="stage built images + SHA256SUMS for a public GitHub release")
     r.add_argument("tag")
@@ -55,6 +56,9 @@ def main(argv: list[str] | None = None) -> None:
     if a.cmd == "provision":
         from .provision import provision
         return print(provision())
+    if a.cmd == "touchfw":
+        from .touchfw import extract
+        return print(extract())
     if a.cmd == "look":
         from .look import read_screen
         return print(read_screen())
