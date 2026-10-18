@@ -8,12 +8,12 @@ TRAILER = re.compile(r"\n@@(EXIT (\d+)|TIMEOUT)\n$")
 
 
 def endpoint() -> tuple[str, int]:
-    host, _, port = os.environ.get("P80H_AGENT", "172.16.42.1:4444").partition(":")
+    host, _, port = os.environ.get("P80H_DAEMON", "172.16.42.1:4444").partition(":")
     return host, int(port)
 
 
-class AgentChannel:
-    name = "agent"
+class DaemonChannel:
+    name = "daemon"
 
     def conn(self, header: str, timeout: float = 30) -> socket.socket:
         s = socket.create_connection(endpoint(), timeout=timeout)

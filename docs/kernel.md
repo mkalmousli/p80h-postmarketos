@@ -6,13 +6,13 @@ the P80h's chips (Goodix touch, bq24296 charger, MC3XXX/BMA222 accelerometers, C
 
 Stages:
 1. **First light**: build the tree with our config (devtmpfs, uinput, VT, namespaces), keep the panel the way LK left it
-   (simplefb on the LK framebuffer, no LCM driver needed), boot the existing initramfs, reach the agent.
+   (simplefb on the LK framebuffer, no LCM driver needed), boot the existing initramfs, reach the daemon.
 2. **Input and power**: touch, keys, backlight, battery/charger, sensors.
 3. **Wireless**: CONSYS Wi-Fi/Bluetooth with the firmware from the stock system.
 4. **Own display driver**: port the `c805_zs_hx8394a01_inx_wxga_ips_8` panel init (read from the stock kernel) if power management needs it.
 
-Every stage is flashed to `boot` through the agent; the BROM path always restores the previous image.
+Every stage is flashed to `boot` through the daemon; the BROM path always restores the previous image.
 
 ## Log channels (bring-up)
-- RAM log: `mt8163-ramlog` mirrors the console into the third page of the stock framebuffer (phys 0x7f3d0000); after the watchdog reset `try-kernel` scans `/dev/fb0` for `P80HLOG` and writes `out/last-boot.log`. Fast and complete.
-- Camera OCR fallback: `p80h look` photographs the tablet screen with a phone on adb; `try-kernel` stores one OCR at 55 s in `out/screen.txt`.
+- RAM log: `mt8163-ramlog` mirrors the console into the third page of the stock framebuffer (phys 0x7f3d0000); after the watchdog reset `try-kernel` scans `/dev/fb0` for `P80HLOG` and writes `local/out/last-boot.log`. Fast and complete.
+- Camera OCR fallback: `p80h look` photographs the tablet screen with a phone on adb; `try-kernel` stores one OCR at 55 s in `local/out/screen.txt`.

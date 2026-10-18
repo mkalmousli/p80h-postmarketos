@@ -24,7 +24,7 @@ def main(argv: list[str] | None = None) -> None:
     t.add_argument("y", type=int)
     f = sub.add_parser("flash")
     f.add_argument("pairs", nargs="+", metavar="PART=FILE")
-    f.add_argument("--via", choices=["agent", "brom", "fastboot"], default="agent")
+    f.add_argument("--via", choices=["daemon", "brom", "fastboot"], default="daemon")
     ps = sub.add_parser("push", help="copy a directory tree onto the tablet")
     ps.add_argument("src")
     ps.add_argument("dest", nargs="?", default="/")
@@ -33,7 +33,7 @@ def main(argv: list[str] | None = None) -> None:
     b = sub.add_parser("build-boot", help="pmOS initramfs + p80hd -> MTK boot.img")
     b.add_argument("initramfs")
     b.add_argument("out")
-    b.add_argument("--stock", default="port/stock", help="dir with bootimg.cfg + zImage.stock")
+    b.add_argument("--stock", default="src/port/stock", help="dir with bootimg.cfg + zImage.stock")
     b.add_argument("--rescue", action="store_true", help="park in the initramfs, never mount the rootfs")
     k = sub.add_parser("kernel", help="fetch + build the mainline kernel and wrap it for LK")
     k.add_argument("out")
@@ -76,7 +76,7 @@ def main(argv: list[str] | None = None) -> None:
         tab.tap(a.x, a.y)
     elif a.cmd == "flash":
         parts = dict(x.split("=", 1) for x in a.pairs)
-        if a.via == "agent":
+        if a.via == "daemon":
             for k, v in parts.items():
                 tab.flash(k, Path(v).read_bytes())
         elif a.via == "fastboot":

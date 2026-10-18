@@ -4,15 +4,15 @@ import time
 from pathlib import Path
 
 from . import look
-from .channels.agent import AgentChannel
+from .channels.daemon import DaemonChannel
 
 
 def look_ok() -> bool:
     return "	device" in look.adb("devices")
 
 
-def _agent_up() -> AgentChannel | None:
-    ch = AgentChannel()
+def _daemon_up() -> DaemonChannel | None:
+    ch = DaemonChannel()
     try:
         return ch if ch.available() else None
     except OSError:
@@ -29,11 +29,11 @@ def _wait(pred, secs: float, step: float = 0.3):
     return None
 
 
-def kernel_of(ch: AgentChannel) -> str:
+def kernel_of(ch: DaemonChannel) -> str:
     return ch.sh("uname -r").strip()
 
 
-def read_log(ch: AgentChannel) -> str:
+def read_log(ch: DaemonChannel) -> str:
     """Mainline log from the persistent RAM console (see mt8163-ramlog.c); empty if the stock kernel has none."""
     ch.sh("cat /proc/last_kmsg > /tmp/p80h.lk 2>/dev/null; true")
     raw = ch.get("/tmp/p80h.lk")
@@ -48,11 +48,11 @@ def read_log(ch: AgentChannel) -> str:
     return text.decode(errors="replace")
 
 
-def emmc_node(ch: AgentChannel) -> str:
+def emmc_node(ch: DaemonChannel) -> str:
     return "/dev/" + ch.sh("grep -l PARTNAME=expdb$ /sys/class/block/mmcblk0p*/uevent").split("/")[4]
 
 
-def read_emmc_log(ch: AgentChannel) -> str:
+def read_emmc_log(ch: DaemonChannel) -> str:
     """Mainline log written by mt8163-emmclog.c into the first 256 KiB of the expdb partition."""
     ch.sh("mdev -s 2>/dev/null; true")
     raw = ch.get(emmc_node(ch), 0, 512 * 512)
@@ -61,9 +61,9 @@ def read_emmc_log(ch: AgentChannel) -> str:
 
 def try_kernel(image: Path, boot_secs: float = 90) -> str:
     """Returns the kernel release the tablet ended up running; the caller compares it to the stock one."""
-    ch = _wait(_agent_up, 300)
+    ch = _wait(_daemon_up, 300)
     if not ch:
-        raise SystemExit("no agent: power-cycle the tablet so it boots the working boot partition")
+        raise SystemExit("no daemon: power-cycle the tablet so it boots the working boot partition")
     stock = kernel_of(ch)
     ch.sh("mdev -s 2>/dev/null; true")
     ch.put(emmc_node(ch), bytes(512 * 512))  # clear the log area so stale data is never mistaken for output
@@ -71,17 +71,17 @@ def try_kernel(image: Path, boot_secs: float = 90) -> str:
     ch.put(node, image.read_bytes())
     ch.reboot("recovery")
     if shutil.which("adb") and look_ok():
-        look.snap(Path("out/screen.txt"), 55)
-    if not _wait(lambda: not _agent_up(), 30):
+        look.snap(Path("local/out/screen.txt"), 55)
+    if not _wait(lambda: not _daemon_up(), 30):
         return "FAILED (tablet did not reboot)"
     t0 = time.time()
-    new = _wait(_agent_up, boot_secs)
+    new = _wait(_daemon_up, boot_secs)
     if new:
         rel = kernel_of(new)
         log = read_emmc_log(new) if rel == stock else ""
-        Path("out").mkdir(exist_ok=True)
-        Path("out/last-boot.log").write_text(log)
-        return f"{rel} (up after {time.time() - t0:.0f}s), log {len(log)} bytes -> out/last-boot.log"
-    # nothing came up: the watchdog should reset into the stock boot, then the old agent answers again
-    back = _wait(_agent_up, 120)
+        Path("local/out").mkdir(exist_ok=True)
+        Path("local/out/last-boot.log").write_text(log)
+        return f"{rel} (up after {time.time() - t0:.0f}s), log {len(log)} bytes -> local/out/last-boot.log"
+    # nothing came up: the watchdog should reset into the stock boot, then the old daemon answers again
+    back = _wait(_daemon_up, 120)
     return f"FAILED (back on {kernel_of(back)})" if back else "FAILED (tablet silent, power-cycle it)"

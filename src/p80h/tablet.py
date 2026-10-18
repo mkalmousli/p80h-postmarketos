@@ -1,6 +1,6 @@
 """Tablet: one handle that works in every boot stage (BROM/preloader, fastboot, Android/pmOS shell)."""
 import time
-from .ops import AgentOps
+from .ops import DaemonOps
 
 from . import brom, fastboot, usb
 from .channels import ALL
@@ -8,7 +8,7 @@ from .channels import ALL
 NATIVE_MODES = ("recovery", "bootloader")
 
 
-class Tablet(AgentOps):
+class Tablet(DaemonOps):
     def __init__(self) -> None:
         self._channels = [c() for c in ALL]
 
@@ -32,7 +32,7 @@ class Tablet(AgentOps):
         stage, ch = self.stage(), self.channel()
         info = {"stage": stage, "channel": ch.name if ch else None}
         if ch:
-            if ch.name == "agent":
+            if ch.name == "daemon":
                 info.update(ch.status())
             info["os"] = self.sh("grep -h ^PRETTY /etc/os-release 2>/dev/null; getprop ro.build.version.release 2>/dev/null").replace("\n", " ")
             info["kernel"] = self.sh("uname -r")
@@ -58,7 +58,7 @@ class Tablet(AgentOps):
         if mode == "off":
             return self._try("poweroff")
         ch = self.channel()
-        if ch and ch.name == "agent" and mode != "brom":
+        if ch and ch.name == "daemon" and mode != "brom":
             return ch.reboot({"normal": "", "off": "off"}.get(mode, mode))
         if mode in NATIVE_MODES:
             return self._try(f"rebootto {mode} || reboot {mode} || reboot -f")

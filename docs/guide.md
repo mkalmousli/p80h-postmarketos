@@ -26,5 +26,5 @@ and skip system/userdata. Full-flash dumps died at ~1%.
 * `pmbootstrap install --split` fails here (kpartx), so `04-make-rootfs.sh` runs `mke2fs -d` on the chroot.
 
 ## 5. Flash
-`fastboot flash boot out/boot.img`. The bootloader rejects fastboot's sparse images for userdata (`Unknown chunk type`),
-so write the root image raw: `mtk w userdata out/root.img` in BROM mode.
+`fastboot flash boot local/out/boot.img`. The bootloader rejects fastboot's sparse images for userdata (`Unknown chunk type`),
+so write the root image raw: `mtk w userdata local/out/root.img` in BROM mode.

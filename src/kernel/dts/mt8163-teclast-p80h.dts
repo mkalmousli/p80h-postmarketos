@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /dts-v1/;
+#include <dt-bindings/gpio/gpio.h>
 #include "mt8163.dtsi"
 
 / {
@@ -61,10 +62,6 @@
 		pins-clk {
 			pinmux = <0x8501>;
 			bias-pull-down;
-		};
-		pins-rst {
-			pinmux = <0x8301>;
-			bias-pull-up;
 		};
 	};
 };

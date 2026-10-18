@@ -26,11 +26,11 @@ def firstlight_list() -> Path:
 
 def initramfs_dir(init: Path, failsafe: int = 0) -> Path:
     """pmOS initramfs unpacked next to the build, with p80hd wired in; the kernel packs the directory itself."""
-    from ..image import agent, initramfs
+    from ..image import daemon, initramfs
     root = tree.OUT / "initramfs-root"
     shutil.rmtree(root, ignore_errors=True)
     initramfs.unpack(init.resolve(), root)
-    agent.install(root, agent.compile_agent(tree.OUT / "p80hd"), rescue=False)
+    daemon.install(root, daemon.compile_daemon(tree.OUT / "p80hd"), rescue=False)
     if failsafe:  # dev builds: hardware-reset back into the known-good boot partition if nobody takes over
         initramfs.patch_init(root, "start_unudhcpd", f"(sleep {failsafe}; echo b > /proc/sysrq-trigger) &")
     return root

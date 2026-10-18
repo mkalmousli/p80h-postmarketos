@@ -1,11 +1,8 @@
-backup/
+/local/
+.venv/
+__pycache__/
 *.bin
 *.egg-info/
-hwparam.json
-out/
-port/pmaports/device/testing/linux-teclast-p80h/*.dtb
-port/pmaports/device/testing/linux-teclast-p80h/Image
-port/stock/*.stock
-__pycache__/
-.venv/
-trees/
+src/port/pmaports/device/testing/linux-teclast-p80h/*.dtb
+src/port/pmaports/device/testing/linux-teclast-p80h/Image
+src/port/stock/*.stock

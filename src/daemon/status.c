@@ -31,7 +31,7 @@ void cmd_status(int fd, const char *arg)
 			break;
 	if (f)
 		fclose(f);
-	say(fd, "{\"agent\":\"" VERSION "\",\"stage\":\"%s\",\"uptime\":%s,\"load\":%s,\"battery\":\"%s\","
+	say(fd, "{\"daemon\":\"" VERSION "\",\"stage\":\"%s\",\"uptime\":%s,\"load\":%s,\"battery\":\"%s\","
 	    "\"pid1\":\"%s\",\"mem_kb\":%s}\n", access("/init_2nd.sh", F_OK) ? "rootfs" : "initramfs",
 	    up, load, batt, pid1, mem[0] ? mem : "0");
 }

@@ -7,11 +7,11 @@ import time
 import unittest
 from pathlib import Path
 
-from agentbase import PORT, AgentBase
+from daemonbase import PORT, DaemonBase
 
 
 
-class Robust(AgentBase):
+class Robust(DaemonBase):
     def test_put_short_upload_leaves_no_file(self):
         path = str(Path(self.tmp.name, "short"))
         s = self.ch.conn(f"PUT {path} 1000 644")
@@ -45,7 +45,7 @@ class Robust(AgentBase):
             time.sleep(0.25)
             if self.ch.available():
                 return
-        self.fail("agent did not come back after its worker was killed")
+        self.fail("daemon did not come back after its worker was killed")
 
     def test_pty_shell(self):
         s = self.ch.conn("SHELL 24 80")

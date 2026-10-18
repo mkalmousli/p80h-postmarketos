@@ -1,4 +1,4 @@
-"""Interactive terminal on the tablet: raw local tty <-> the agent's SHELL pty."""
+"""Interactive terminal on the tablet: raw local tty <-> the daemon's SHELL pty."""
 import os
 import select
 import shutil
@@ -6,14 +6,14 @@ import sys
 import termios
 import tty
 
-from .channels.agent import AgentChannel
+from .channels.daemon import DaemonChannel
 
 
 def interactive() -> None:
     size = shutil.get_terminal_size()
-    s = AgentChannel().conn(f"SHELL {size.lines} {size.columns}", 10)
+    s = DaemonChannel().conn(f"SHELL {size.lines} {size.columns}", 10)
     if s.recv(3) != b"OK\n":
-        sys.exit("agent refused the shell")
+        sys.exit("daemon refused the shell")
     fd, old = sys.stdin.fileno(), termios.tcgetattr(sys.stdin)
     tty.setraw(fd)
     try:

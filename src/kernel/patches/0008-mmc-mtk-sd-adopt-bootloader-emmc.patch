@@ -1,0 +1,111 @@
+--- a/drivers/mmc/host/mtk-sd.c
++++ b/drivers/mmc/host/mtk-sd.c
+@@ -424,6 +424,7 @@
+ };
+ 
+ struct msdc_host {
++	bool adopt;		/* card was initialised by the bootloader and is emulated through enumeration */
+ 	struct device *dev;
+ 	const struct mtk_mmc_compatible *dev_comp;
+ 	int cmd_rsp;
+@@ -1343,10 +1344,91 @@
+ 		msdc_start_data(host, cmd, cmd->data);
+ }
+ 
++/* polled raw command, only used while adopting the bootloader's card (no interrupts, no data) */
++static u32 msdc_polled_cmd(struct msdc_host *host, u32 raw, u32 arg, u32 *rsp)
++{
++	u32 ev = 0;
++	int i;
++
++	writel(readl(host->base + MSDC_INT), host->base + MSDC_INT);
++	for (i = 0; i < 1000 && (readl(host->base + SDC_STS) & (SDC_STS_SDCBUSY | SDC_STS_CMDBUSY)); i++)
++		udelay(10);
++	writel(arg, host->base + SDC_ARG);
++	writel(raw, host->base + SDC_CMD);
++	for (i = 0; i < 2000 && !ev; i++) {
++		ev = readl(host->base + MSDC_INT) & (MSDC_INT_CMDRDY | MSDC_INT_CMDTMO | MSDC_INT_RSPCRCERR);
++		udelay(10);
++	}
++	writel(ev, host->base + MSDC_INT);
++	for (i = 0; i < 4; i++)
++		rsp[i] = readl(host->base + SDC_RESP0 + 4 * i);
++	if (ev != MSDC_INT_CMDRDY)
++		msdc_reset_hw(host);
++	return ev;
++}
++
++/*
++ * The bootloader leaves the eMMC selected (RCA 1) in HS400. A CMD0 reset followed by CMD1 works, but the
++ * card then never answers CMD2, so keep its state instead: step it back to legacy timing and a 1-bit bus,
++ * deselect it, and let msdc_adopt_cmd() answer the core's CMD0..CMD3 (CID comes from CMD10).
++ */
++static void msdc_adopt_card(struct msdc_host *host)
++{
++	static const u32 sw[] = { 0x03b90101, 0x03b70001, 0x03b90001 };	/* HS_TIMING=1, BUS_WIDTH=0, HS_TIMING=0 */
++	u32 rsp[4];
++	int k, i;
++
++	msdc_set_mclk(host, MMC_TIMING_LEGACY, 400000);
++	if (msdc_polled_cmd(host, MMC_SEND_STATUS | 1 << 7, 1 << 16, rsp) != MSDC_INT_CMDRDY ||
++	    ((rsp[0] >> 9) & 0xf) != R1_STATE_TRAN)
++		return;
++	for (k = 0; k < ARRAY_SIZE(sw); k++) {
++		msdc_polled_cmd(host, MMC_SWITCH | 7 << 7, sw[k], rsp);
++		for (i = 0; i < 100; i++) {
++			msleep(5);
++			if (msdc_polled_cmd(host, MMC_SEND_STATUS | 1 << 7, 1 << 16, rsp) == MSDC_INT_CMDRDY &&
++			    (rsp[0] & R1_READY_FOR_DATA))
++				break;
++		}
++	}
++	msdc_polled_cmd(host, MMC_SELECT_CARD, 0, rsp);
++	host->adopt = true;
++	dev_info(host->dev, "adopting the card initialised by the bootloader\n");
++}
++
++static bool msdc_adopt_cmd(struct msdc_host *host, struct mmc_request *mrq)
++{
++	struct mmc_command *cmd = mrq->cmd;
++
++	switch (cmd->opcode) {
++	case MMC_GO_IDLE_STATE:
++		break;
++	case MMC_SEND_OP_COND:
++		cmd->resp[0] = 0xc0ff8080;
++		break;
++	case MMC_ALL_SEND_CID:	/* the card is deselected: read its CID with the addressed variant */
++		cmd->opcode = MMC_SEND_CID;
++		cmd->arg = 1 << 16;
++		return false;
++	case MMC_SET_RELATIVE_ADDR:
++		cmd->resp[0] = R1_STATE_STBY << 9;
++		host->adopt = false;
++		break;
++	default:
++		return false;
++	}
++	cmd->error = 0;
++	mmc_request_done(mmc_from_priv(host), mrq);
++	return true;
++}
++
+ static void msdc_ops_request(struct mmc_host *mmc, struct mmc_request *mrq)
+ {
+ 	struct msdc_host *host = mmc_priv(mmc);
+ 
++	if (host->adopt && msdc_adopt_cmd(host, mrq))
++		return;
++
+ 	host->error = 0;
+ 	WARN_ON(host->mrq);
+ 	host->mrq = mrq;
+@@ -2936,6 +3018,8 @@
+ 	pm_runtime_set_autosuspend_delay(host->dev, MTK_MMC_AUTOSUSPEND_DELAY);
+ 	pm_runtime_use_autosuspend(host->dev);
+ 	pm_runtime_enable(host->dev);
++	msdc_adopt_card(host);
++
+ 	ret = mmc_add_host(mmc);
+ 
+ 	if (ret)

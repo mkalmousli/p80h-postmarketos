@@ -1,22 +1,22 @@
-"""Operations that need the p80hd agent: files, partitions, screenshots, input. Mixed into Tablet."""
+"""Operations that need the p80hd daemon: files, partitions, screenshots, input. Mixed into Tablet."""
 import hashlib
 from pathlib import Path
 
 from . import inputs
 
 
-class AgentOps:
-    def agent(self):
+class DaemonOps:
+    def daemon(self):
         ch = self.channel()
-        if not ch or ch.name != "agent":
-            raise RuntimeError("p80hd agent not reachable (needs a boot image that contains it)")
+        if not ch or ch.name != "daemon":
+            raise RuntimeError("p80hd daemon not reachable (needs a boot image that contains it)")
         return ch
 
     def put(self, path: str, data: bytes) -> None:
-        self.agent().put(path, data)
+        self.daemon().put(path, data)
 
     def get(self, path: str) -> bytes:
-        return self.agent().get(path)
+        return self.daemon().get(path)
 
     def partition(self, name: str) -> str:
         """Device node of a GPT partition by name (needs the nodes mdev created)."""
@@ -24,7 +24,7 @@ class AgentOps:
         return "/dev/" + self.sh(cmd).split("/")[4]
 
     def flash(self, name: str, data: bytes) -> None:
-        """Write a partition through the agent and verify with a sha256 of the written range."""
+        """Write a partition through the daemon and verify with a sha256 of the written range."""
         node = self.partition(name)
         self.put(node, data)
         want = hashlib.sha256(data).hexdigest()
@@ -59,7 +59,7 @@ class AgentOps:
     def _inject(self, name_re: str, data: bytes) -> None:
         node = inputs.find_node(self.sh, name_re)
         ch = self.channel()
-        if ch and ch.name == "agent":
+        if ch and ch.name == "daemon":
             ch.inject(node, data)
         else:
             inputs.send(self.sh, node, data)

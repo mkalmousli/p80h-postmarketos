@@ -1,4 +1,4 @@
-/* p80hd: the tablet-side half of p80h. Line protocol on TCP, see docs/agent.md. */
+/* p80hd: the tablet-side half of p80h. Line protocol on TCP, see docs/daemon.md. */
 #ifndef P80HD_H
 #define P80HD_H
 

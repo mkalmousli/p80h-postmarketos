@@ -1,4 +1,4 @@
-"""Basic agent commands."""
+"""Basic daemon commands."""
 import os
 import signal
 import socket
@@ -7,11 +7,11 @@ import time
 import unittest
 from pathlib import Path
 
-from agentbase import PORT, AgentBase
+from daemonbase import PORT, DaemonBase
 
 
 
-class Basic(AgentBase):
+class Basic(DaemonBase):
     def test_ping_status(self):
         self.assertTrue(self.ch.available())
         st = self.ch.status()

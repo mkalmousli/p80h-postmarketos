@@ -9,21 +9,21 @@ import time
 import unittest
 from pathlib import Path
 
-from p80h.channels.agent import AgentChannel
+from p80h.channels.daemon import DaemonChannel
 
-AGENT = Path(__file__).resolve().parents[1] / "agent"
+DAEMON = Path(__file__).resolve().parents[1] / "daemon"
 PORT = 14000 + os.getpid() % 1000
 
 
-class AgentBase(unittest.TestCase):
+class DaemonBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         exe = Path(cls.tmp.name, "p80hd")
-        subprocess.run(["gcc", "-Wall", "-O1", "-o", str(exe), *map(str, AGENT.glob("*.c"))], check=True)
-        os.environ["P80H_AGENT"] = f"127.0.0.1:{PORT}"
+        subprocess.run(["gcc", "-Wall", "-O1", "-o", str(exe), *map(str, DAEMON.glob("*.c"))], check=True)
+        os.environ["P80H_DAEMON"] = f"127.0.0.1:{PORT}"
         cls.proc = subprocess.Popen([str(exe), "-b", "127.0.0.1", "-p", str(PORT)], start_new_session=True)
-        cls.ch = AgentChannel()
+        cls.ch = DaemonChannel()
         for _ in range(50):
             if cls.ch.available():
                 break

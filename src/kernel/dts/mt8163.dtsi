@@ -114,7 +114,6 @@
 			reset-names = "pwrap";
 			clocks = <&topckgen CLK_TOP_PMICSPI_SEL>, <&infracfg CLK_INFRA_PMIC_AP>;
 			clock-names = "spi", "wrap";
-			status = "disabled";	/* bring-up: the PMIC probe stalls, see docs/status.md */
 
 			pmic: pmic {
 				compatible = "mediatek,mt6323";

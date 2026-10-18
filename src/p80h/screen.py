@@ -1,4 +1,4 @@
-"""Screenshot: read the mtkfb framebuffer over the agent and write a PNG (stdlib only)."""
+"""Screenshot: read the mtkfb framebuffer over the daemon and write a PNG (stdlib only)."""
 import struct
 import zlib
 

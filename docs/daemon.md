@@ -1,6 +1,6 @@
-# p80hd: the on-device agent
+# p80hd: the on-device daemon
 
-`p80hd` is a small static arm64 daemon (`agent/`, plain C, no dependencies). The image builder puts it into the
+`p80hd` is a small static arm64 daemon (`src/daemon/`, plain C, no dependencies). The image builder puts it into the
 boot image's initramfs and starts it as soon as the USB network is up, **before** the root filesystem is looked at.
 So it is reachable whatever state the system on `userdata` is in, and it survives `switch_root`.
 
@@ -25,4 +25,4 @@ bring-up tool, not something to ship on a finished device).
 | `REBOOT <mode>` | `OK`; mode is a reason string for LK (`recovery`, `bootloader`), empty, or `off` |
 | `INJECT <node> <size>` + bytes | raw `struct input_event`s written to an input device |
 
-Tests: `uv run python -m unittest discover -s tests` builds the agent natively and drives it over loopback.
+Tests: `uv run python -m unittest discover -s tests` builds the daemon natively and drives it over loopback.
