@@ -45,6 +45,12 @@
 			reg = <0 0x10200620 0 0x20>;
 		};
 
+		/* index/data pair inside mcucfg that enables the generic timer counter */
+		cpuxgpt: timer@10200670 {
+			compatible = "mediatek,mt8163-cpuxgpt";
+			reg = <0 0x10200670 0 8>;
+		};
+
 		gic: interrupt-controller@10220000 {
 			compatible = "arm,gic-400";
 			#interrupt-cells = <3>;

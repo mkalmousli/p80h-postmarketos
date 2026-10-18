@@ -1,0 +1,25 @@
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index abfc2aa85..031a600cd 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -311,6 +311,11 @@ config ARC_TIMERS_64BIT
+ 	  ARConnect IP block. Driver automatically picks one of them for clocksource
+ 	  as appropriate.
+ 
++config MT8163_CPUXGPT
++	bool "MediaTek MT8163 CPUXGPT (generic timer counter clock)"
++	depends on ARCH_MEDIATEK
++	select TIMER_PROBE
++
+ config ARM_ARCH_TIMER
+ 	bool
+ 	select TIMER_OF if OF
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index 227437852..98ebbbb2b 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -91,3 +91,4 @@ obj-$(CONFIG_GOLDFISH_TIMER)		+= timer-goldfish.o
+ obj-$(CONFIG_GXP_TIMER)			+= timer-gxp.o
+ obj-$(CONFIG_CLKSRC_LOONGSON1_PWM)	+= timer-loongson1-pwm.o
+ obj-$(CONFIG_EP93XX_TIMER)		+= timer-ep93xx.o
++obj-$(CONFIG_MT8163_CPUXGPT)	+= timer-mt8163-cpuxgpt.o

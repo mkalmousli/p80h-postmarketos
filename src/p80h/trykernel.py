@@ -34,13 +34,18 @@ def kernel_of(ch: AgentChannel) -> str:
 
 
 def read_log(ch: AgentChannel) -> str:
-    """Mainline log that the ramlog console left in the stock framebuffer's spare page (empty if none)."""
-    ch.sh("mdev -s 2>/dev/null; true")
-    ch.sh("dd if=/dev/fb0 of=/tmp/p80h.log bs=1048576 skip=4 count=1 2>/dev/null; true")
-    page = ch.get("/tmp/p80h.log")
-    if page[:7] != b"P80HLOG":
+    """Mainline log from the persistent RAM console (see mt8163-ramlog.c); empty if the stock kernel has none."""
+    ch.sh("cat /proc/last_kmsg > /tmp/p80h.lk 2>/dev/null; true")
+    raw = ch.get("/tmp/p80h.lk")
+    at = raw.find(b"DBGC")  # signature of the vendor header the mainline side wrote
+    while at >= 0 and int.from_bytes(raw[at + 40:at + 44], "little") != 0x10000:
+        at = raw.find(b"DBGC", at + 1)
+    if at < 0:
         return ""
-    return page[16:16 + int.from_bytes(page[8:12], "little")].decode(errors="replace")
+    head, ring = raw[at:at + 512], raw[at + 512:at + 0x10000]
+    pos, valid = (int.from_bytes(head[o:o + 4], "little") for o in (52, 56))
+    text = ring[pos:valid] + ring[:pos] if valid > pos and valid >= len(ring) else ring[:valid]
+    return text.decode(errors="replace")
 
 
 def try_kernel(image: Path, boot_secs: float = 90) -> str:
@@ -54,7 +59,7 @@ def try_kernel(image: Path, boot_secs: float = 90) -> str:
     ch.put(node, image.read_bytes())
     ch.reboot("recovery")
     if shutil.which("adb") and look_ok():
-        look.snap(Path("out/screen.txt"), 40)
+        look.snap(Path("out/screen.txt"), 55)
     if not _wait(lambda: not _agent_up(), 30):
         return "FAILED (tablet did not reboot)"
     t0 = time.time()

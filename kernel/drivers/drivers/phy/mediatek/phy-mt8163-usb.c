@@ -10,6 +10,7 @@
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/phy/phy.h>
+#include <asm/sysreg.h>
 #include <linux/platform_device.h>
 
 struct mt8163_phy {
@@ -25,7 +26,18 @@ static void set8(void __iomem *base, u32 off, u8 set, u8 clr)
 static void mt8163_usb_phy_seq(struct mt8163_phy *u)
 {
 	pr_info("p80h-phy: r6b=%x\n", readb(u->phy + 0x6b));
+	{
+		u64 a = read_sysreg(cntvct_el0), b, i;
+
+		for (i = 0; i < 1000000; i++)
+			cpu_relax();
+		b = read_sysreg(cntvct_el0);
+		pr_info("p80h-phy: cntfrq=%llu delta=%llu\n", read_sysreg(cntfrq_el0), b - a);
+	}
 	udelay(50);
+	pr_info("p80h-phy: udelay ok\n");
+	writeb(readb(u->phy + 0x6b), u->phy + 0x6b);
+	pr_info("p80h-phy: same-value write ok\n");
 
 	set8(u->phy, 0x6b, 0, 0x04);	/* force_uart_en = 0 */
 	pr_info("p80h-phy: w6b done\n");
