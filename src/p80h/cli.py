@@ -41,7 +41,14 @@ def main(argv: list[str] | None = None) -> None:
     k.add_argument("--failsafe", type=int, default=0, help="dev: reset to the boot partition after N seconds")
     sub.add_parser("try-kernel", help="flash an image to recovery, boot it, report the kernel").add_argument("image")
     sub.add_parser("look", help="photograph the tablet screen with the adb phone and print the OCR text")
+    r = sub.add_parser("release", help="stage built images + SHA256SUMS for a public GitHub release")
+    r.add_argument("tag")
+    r.add_argument("files", nargs="+")
+    r.add_argument("--publish", action="store_true", help="create the GitHub release (public upload)")
     a = p.parse_args(argv)
+    if a.cmd == "release":
+        from .release import stage
+        return print(stage(a.tag, [Path(f) for f in a.files], a.publish))
     if a.cmd == "look":
         from .look import read_screen
         return print(read_screen())
