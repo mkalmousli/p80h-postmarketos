@@ -1,0 +1,1 @@
+xterm -geometry 90x40+0+0 -bg '#102030' -fg white -fa Monospace -fs 11 &

@@ -1,0 +1,6 @@
+#!/bin/sh
+# start the X session on the framebuffer at boot (bring-up: root, no display manager)
+(Xorg :0 -noreset -nolisten tcp vt7 -logfile /var/log/Xorg.0.log >/dev/null 2>&1; true) &
+sleep 4
+chvt 7
+HOME=/root DISPLAY=:0 openbox-session >/var/log/openbox.log 2>&1 &

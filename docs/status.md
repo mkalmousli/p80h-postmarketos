@@ -46,3 +46,8 @@ Hypothesis -> test -> result. One change per run.
 
 ## Run 76
 - Mainline switch_root'd into the userdata pmOS (ext4 mounts) then reset ~10 s later: the init's `echo > /dev/watchdog0` loop took the dog away from the kernel pinger ("watchdog did not stop") and died with the initramfs. Removed the loop; the kernel pings HW_RUNNING dogs until userspace opens one. Falsified if it still resets ~10 s after switch_root.
+
+## Runs 76-77 - OPENBOX RUNNING (2026-10-19)
+- Mainline 6.12.99 switch_roots into the pmOS rootfs on userdata (p23, ext4 label pmOS_root, flashed + sha256-verified over the daemon), OpenRC comes up, `p80h provision` pushes xorg.conf (fbdev on simplefb), `/etc/local.d/openbox.start` (Xorg on vt7 + openbox-session) and an xterm autostart. After a cold `try-kernel` Xorg+openbox+xterm start by themselves; fb0 readback shows the xterm.
+- Root causes found on the way: mtk-wdt probe failed (-22, GIC rejects edge-falling) so the dog LK armed reset the tablet ~26 s after boot; the init's `echo > /dev/watchdog0` loop then stole the dog from the kernel's pinger and died at switch_root.
+- Known flake: the first `try-kernel` after a mainline run sometimes lands in the stock-kernel boot partition; repeating works.
