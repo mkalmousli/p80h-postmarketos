@@ -109,3 +109,36 @@
 		silead,max-fingers = <5>;
 	};
 };
+
+/* micro-SD slot; the card rail (VMCH) is switched by the PMIC, so until that driver exists a fixed 3.0 V stands in */
+&pio {
+	mmc1_pins: mmc1 {
+		pins-cmd-dat {
+			pinmux = <0x7b01>, <0x7c01>, <0x7d01>, <0x7e01>, <0x7901>;
+			input-enable;
+			bias-pull-up;
+		};
+		pins-clk {
+			pinmux = <0x7a01>;
+			bias-pull-down;
+		};
+		pins-insert {
+			pinmux = <0x3100>;
+			bias-pull-up;
+		};
+	};
+};
+
+&mmc1 {
+	vmmc-supply = <&vmmc>;
+	bus-width = <4>;
+	max-frequency = <50000000>;
+	cap-sd-highspeed;
+	cd-gpios = <&pio 49 GPIO_ACTIVE_LOW>;
+	pinctrl-names = "default", "state_uhs";
+	pinctrl-0 = <&mmc1_pins>;
+	pinctrl-1 = <&mmc1_pins>;
+	no-mmc;
+	no-sdio;
+	status = "okay";
+};

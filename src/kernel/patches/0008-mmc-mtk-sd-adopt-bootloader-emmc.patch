@@ -1,5 +1,5 @@
 diff --git a/drivers/mmc/host/mtk-sd.c b/drivers/mmc/host/mtk-sd.c
-index be9954f5b..ab29875b4 100644
+index be9954f5b..4c9db8ce8 100644
 --- a/drivers/mmc/host/mtk-sd.c
 +++ b/drivers/mmc/host/mtk-sd.c
 @@ -424,6 +424,7 @@ struct msdc_delay_phase {
@@ -128,16 +128,19 @@ index be9954f5b..ab29875b4 100644
  static int msdc_drv_probe(struct platform_device *pdev)
  {
  	struct mmc_host *mmc;
-@@ -2936,11 +3030,7 @@ static int msdc_drv_probe(struct platform_device *pdev)
+@@ -2936,11 +3030,13 @@ static int msdc_drv_probe(struct platform_device *pdev)
  	pm_runtime_set_autosuspend_delay(host->dev, MTK_MMC_AUTOSUSPEND_DELAY);
  	pm_runtime_use_autosuspend(host->dev);
  	pm_runtime_enable(host->dev);
--	ret = mmc_add_host(mmc);
++	if (mmc->caps & MMC_CAP_NONREMOVABLE) {
++		p80h_host = host;	/* eMMC: enumeration starts on `echo 1 > /sys/module/mtk_sd/parameters/go` */
++		return 0;
++	}
+ 	ret = mmc_add_host(mmc);
 -
--	if (ret)
--		goto end;
+ 	if (ret)
+ 		goto end;
 -
-+	p80h_host = host;	/* bring-up: enumeration starts on `echo 1 > /sys/module/mtk_sd/parameters/go` */
  	return 0;
  end:
  	pm_runtime_disable(host->dev);

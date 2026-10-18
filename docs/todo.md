@@ -15,8 +15,8 @@ Order follows dependency: each phase unlocks the next.
 ## Phase 1 — Storage (current blocker)
 - ✅ **eMMC/MSDC0**: works via card adoption (patch 0008), partitions + reads OK; real CMD2 enumeration still unsolved (needs RST_n/CMD2 root cause)
 - ✅ Rootfs on `userdata` (p23), `switch_root` to Alpine/pmOS, X (fbdev) + Openbox + xterm start at boot (`p80h provision`)
-- ⬜ Partition layout for Alpine (keep stock partitions restorable); resize/ext4/f2fs
-- ⬜ SD card (MSDC1) + hotplug detect, SDIO bus for Wi-Fi if used
+- ✅ Rootfs fills userdata (5.3 GB ext4); stock partitions untouched/restorable (partition table unchanged)
+- 🔧 (host up, needs a card to verify) SD card (MSDC1) + hotplug detect, SDIO bus for Wi-Fi if used
 - ⬜ eMMC reliability: trim, write-protect of boot0/1, never touch `nvram/proinfo/persist`
 
 ## Phase 2 — Core SoC bring-up

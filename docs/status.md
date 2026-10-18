@@ -61,3 +61,8 @@ Hypothesis -> test -> result. One change per run.
 - Hypothesis: LK boots our wrapped image from the boot partition exactly as from recovery (no signature check, seen with recovery); with the stock boot image parked in recovery (power+vol-up) a bad build still has a way back, and mainline's persistent daemon lets us keep flashing from mainline itself.
 - Falsify: after `p80h install local/out/recovery-79.img` + reboot, `uname -r` is not 6.12.99 or the daemon never appears.
 - Result run 80: confirmed. `p80h install <wrapped image>` writes stock boot.bin to recovery and the image to boot (readback verified); a normal reboot comes up in 6.12.99 + Openbox with the daemon on 172.16.42.1. New loop: build -> `wrap` -> `install` -> `reboot` (try-kernel is only for a stock-booted tablet). Fallback to stock: power+vol-up (recovery slot), or BROM.
+
+## Run 81 - SD card (MSDC1)
+- Hypothesis: mmc1 at 0x11240000 (IRQ 80, pins 121-126, card detect GPIO49 active-low, from the vendor douglas.dts) works unmodified in mtk-sd; the adopt hack must only apply to the non-removable host (patch 0008 now gates on MMC_CAP_NONREMOVABLE). Rail VMCH assumed enabled/placeholder.
+- Falsify: `/sys/class/mmc_host/mmc1` missing, or with a card inserted no mmcblk1 appears / CMD timeouts in dmesg, or eMMC (mmc0) stops enumerating.
+- Result run 81/82: `mmc1` registers (needs the state_uhs pinctrl entry too), eMMC unaffected. No card in the slot, so card enumeration is unverified.

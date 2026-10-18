@@ -149,6 +149,15 @@
 			status = "disabled";
 		};
 
+		mmc1: mmc@11240000 {
+			compatible = "mediatek,mt2701-mmc";
+			reg = <0 0x11240000 0 0x1000>;
+			interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_LOW>;
+			clocks = <&topckgen CLK_TOP_MSDC30_1_SEL>, <&infracfg CLK_INFRA_MSDC1>, <&infracfg CLK_INFRA_MSDC3>;
+			clock-names = "source", "hclk", "source_cg";
+			status = "disabled";
+		};
+
 		usb_phy: usb-phy@11210800 {
 			compatible = "mediatek,mt8163-usb-phy";
 			reg = <0 0x11210800 0 0x100>;
