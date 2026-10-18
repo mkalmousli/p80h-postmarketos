@@ -1,0 +1,23 @@
+#!/sbin/openrc-run
+# Desktop on the mtkfb framebuffer: Xorg (fbdev) + openbox + tint2 + on-screen keyboard. No VT in this kernel.
+description="X session on /dev/fb0"
+
+depend() {
+	need p80h-dev
+}
+
+start() {
+	ebegin "Starting X"
+	start-stop-daemon --start --background --make-pidfile --pidfile /run/p80h-x.pid \
+		--exec /usr/bin/Xorg -- :0 -noreset -novtswitch -sharevts -nolisten tcp vt1
+	sleep 4
+	export HOME=/root DISPLAY=:0
+	start-stop-daemon --start --background --exec /usr/bin/openbox-session
+	start-stop-daemon --start --background --exec /usr/bin/tint2
+	start-stop-daemon --start --background --exec /usr/bin/matchbox-keyboard
+	eend 0
+}
+
+stop() {
+	start-stop-daemon --stop --pidfile /run/p80h-x.pid
+}

@@ -1,0 +1,26 @@
+# Maintainer: Teclast P80h port <p80h@example.invalid>
+# Wraps the prebuilt stock 3.10.72 kernel (no kernel source is published).
+pkgname=linux-teclast-p80h
+pkgver=3.10.72
+pkgrel=1
+pkgdesc="Prebuilt stock kernel for Teclast P80h (MT8163)"
+url="https://postmarketos.org"
+license="GPL-2.0-only"
+arch="aarch64"
+options="!check !strip !tracedeps !archcheck pmb:cross-native"
+source="Image mt8163.dtb"
+
+package() {
+	install -Dm644 "$srcdir/Image" "$pkgdir/boot/vmlinuz"
+	install -Dm644 "$srcdir/mt8163.dtb" "$pkgdir/boot/dtbs/mt8163.dtb"
+	# mkinitfs needs the release string and a (here empty) modules dir
+	install -Dm644 /dev/null "$pkgdir/usr/share/kernel/stable/kernel.release"
+	echo "$pkgver" > "$pkgdir/usr/share/kernel/stable/kernel.release"
+	install -d "$pkgdir/lib/modules/$pkgver"
+	: > "$pkgdir/lib/modules/$pkgver/modules.dep"
+}
+
+sha512sums="
+2f68c208675baea0b9f11cc7f0875c61c7954ab6af7bd162f61529d721efce34306a26413c1cc0f0354099702f6cf269d852a469edc9dcc6e9c359ff913bdf21  Image
+8196e6d5ece6b1cbfae1b9c4560d386db7c67f9d746a00130f6d8fbd0c94006d762580d4c90482641d662185f924e6b100886587c98f849bf11a2e791e735fa7  mt8163.dtb
+"

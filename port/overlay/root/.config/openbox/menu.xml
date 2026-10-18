@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openbox_menu xmlns="http://openbox.org/3.4/menu">
+<menu id="root-menu" label="Menu">
+  <item label="Terminal"><action name="Execute"><command>xterm -fa Monospace -fs 14</command></action></item>
+  <item label="Wi-Fi"><action name="Execute"><command>xterm -fa Monospace -fs 14 -e nmtui</command></action></item>
+  <item label="Bluetooth"><action name="Execute"><command>xterm -fa Monospace -fs 14 -e bluetoothctl</command></action></item>
+  <item label="Brightness +"><action name="Execute"><command>/usr/local/bin/p80h-bright up</command></action></item>
+  <item label="Brightness -"><action name="Execute"><command>/usr/local/bin/p80h-bright down</command></action></item>
+  <item label="Keyboard"><action name="Execute"><command>matchbox-keyboard</command></action></item>
+  <item label="Reboot"><action name="Execute"><command>reboot</command></action></item>
+  <item label="Shut down"><action name="Execute"><command>poweroff</command></action></item>
+</menu>
+</openbox_menu>

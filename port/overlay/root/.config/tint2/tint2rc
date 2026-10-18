@@ -1,0 +1,10 @@
+panel_items = LTSC
+panel_size = 100% 56
+panel_position = bottom center horizontal
+launcher_item_app = /usr/local/share/applications/wifi.desktop
+launcher_item_app = /usr/local/share/applications/bluetooth.desktop
+launcher_item_app = /usr/local/share/applications/bright-up.desktop
+launcher_item_app = /usr/local/share/applications/bright-down.desktop
+launcher_item_app = /usr/local/share/applications/keyboard.desktop
+launcher_icon_size = 48
+time1_format = %H:%M

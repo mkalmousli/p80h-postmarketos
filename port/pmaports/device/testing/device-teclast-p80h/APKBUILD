@@ -1,0 +1,24 @@
+# Maintainer: Teclast P80h port <p80h@example.invalid>
+pkgname=device-teclast-p80h
+pkgdesc="Teclast P80h"
+pkgver=1
+pkgrel=1
+url="https://postmarketos.org"
+license="MIT"
+arch="aarch64"
+options="!check !archcheck"
+depends="android-tools-mkbootimg postmarketos-base linux-teclast-p80h"
+makedepends="devicepkg-dev"
+source="deviceinfo"
+
+build() {
+	devicepkg_build $startdir $pkgname
+}
+
+package() {
+	devicepkg_package $startdir $pkgname
+}
+
+sha512sums="
+4c924c42249c6547ffee4a5f4fa39928a9bfb8fc3a8e617523b58139d9393bfed743249fcee41950bbf733c23558555fbff959659c8676fb3c6265895e01ebe8  deviceinfo
+"
