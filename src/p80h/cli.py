@@ -30,6 +30,9 @@ def main(argv: list[str] | None = None) -> None:
     ps.add_argument("dest", nargs="?", default="/")
     sub.add_parser("shell", help="interactive terminal")
     sub.add_parser("screenshot").add_argument("out")
+    v = sub.add_parser("view", help="what the panel scans out (OVL0 layer -> /dev/mem), as PNG; --live keeps refreshing")
+    v.add_argument("out", nargs="?", default="local/logs/screen/latest.png")
+    v.add_argument("--live", action="store_true")
     b = sub.add_parser("build-boot", help="pmOS initramfs + p80hd -> MTK boot.img")
     b.add_argument("initramfs")
     b.add_argument("out")
@@ -45,6 +48,7 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("install", help="image -> boot partition, stock boot image -> recovery").add_argument("image")
     sub.add_parser("provision", help="push the openbox session (Xorg fbdev) onto the tablet's rootfs")
     sub.add_parser("re", help="ground truth from the stock kernel").add_argument("what", choices=["i2c", "items", "lcm"])
+    sub.add_parser("emmclog", help="raw eMMC kernel log (expdb): 'clear' or save run N to local/logs/run-N").add_argument("run")
     sub.add_parser("touchfw", help="extract the touchscreen firmware from the stock boot.bin")
     sub.add_parser("look", help="photograph the tablet screen with the adb phone and print the OCR text")
     r = sub.add_parser("release", help="stage built images + SHA256SUMS for a public GitHub release")
@@ -72,6 +76,31 @@ def main(argv: list[str] | None = None) -> None:
         for caller, bus, name, addr, irq in board_info():
             print(f"i2c{bus} {addr:#04x} {name:20} irq={irq} ({caller})")
         return
+    if a.cmd == "view":
+        import time
+        from .channels.daemon import DaemonChannel
+        from .screen import scanout
+        out = Path(a.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        while True:
+            img, info = scanout(DaemonChannel())
+            if img:
+                out.with_suffix(".tmp").write_bytes(img)
+                out.with_suffix(".tmp").replace(out)
+            print(json.dumps(info), flush=True)
+            if not a.live:
+                return
+            time.sleep(1)
+    if a.cmd == "emmclog":
+        from .channels.daemon import DaemonChannel
+        from .trykernel import emmc_node, read_emmc_log
+        ch = DaemonChannel()
+        if a.run == "clear":
+            return ch.put(emmc_node(ch), bytes(512 * 512))
+        out = Path(f"local/logs/run-{a.run}/emmclog.txt")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(read_emmc_log(ch))
+        return print(out)
     if a.cmd == "touchfw":
         from .touchfw import extract
         return print(extract())

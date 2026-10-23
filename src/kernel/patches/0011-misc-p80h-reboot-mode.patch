@@ -1,0 +1,21 @@
+--- a/drivers/misc/Kconfig
++++ b/drivers/misc/Kconfig
+@@ -641,4 +641,11 @@
+ 	help
+ 	  Mirrors the kernel log into raw eMMC sectors with polled writes (bring-up aid).
+ 
++config P80H_REBOOT_MODE
++	bool "Teclast P80h (MT6323 RTC) reboot mode for LK"
++	depends on MFD_MT6397
++	select REBOOT_MODE
++	help
++	  Stores the reboot reason (recovery, fastboot) where LK looks for it.
++
+ endmenu
+--- a/drivers/misc/Makefile
++++ b/drivers/misc/Makefile
+@@ -74,3 +74,4 @@
+ obj-y				+= keba/
+ obj-$(CONFIG_MT8163_RAMLOG)	+= mt8163-ramlog.o
+ obj-$(CONFIG_MT8163_EMMCLOG)	+= mt8163-emmclog.o
++obj-$(CONFIG_P80H_REBOOT_MODE)	+= mt6323-reboot-mode.o

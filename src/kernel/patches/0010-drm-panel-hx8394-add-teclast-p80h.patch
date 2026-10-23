@@ -1,0 +1,94 @@
+--- a/drivers/gpu/drm/panel/panel-himax-hx8394.c
++++ b/drivers/gpu/drm/panel/panel-himax-hx8394.c
+@@ -489,6 +489,83 @@
+ 	.init_sequence = mchp_ac40t08a_init_sequence,
+ };
+ 
++/*
++ * Teclast P80h: C805 ZS HX8394-A01 INX 8" WXGA IPS. Sequence and timings recovered from the stock
++ * kernel's LCM_DRIVER "c805_zs_hx8394a01_inx_wxga_ips_8" by `p80h re lcm` (1 ms between packets as stock).
++ */
++static int c805_zs_init_sequence(struct hx8394 *ctx)
++{
++	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
++
++	mipi_dsi_dcs_write_seq(dsi, 0xb9,
++			       0xff, 0x83, 0x94);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xba,
++			       0x13, 0x82, 0x00, 0x16, 0xc5, 0x00, 0x10, 0xff, 0x0f, 0x24, 0x03, 0x21, 0x24, 0x25, 0x20, 0x08);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xb1,
++			       0x01, 0x00, 0x04, 0xc4, 0x03, 0x12, 0xf1, 0x24, 0x2c, 0x3f, 0x3f, 0x47, 0x02, 0x00, 0xe6, 0xe2, 0xa6);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xb2,
++			       0x00, 0xc8, 0x0e, 0x30, 0x00, 0x81);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xb4,
++			       0x80, 0x04, 0x32, 0x10, 0x08, 0x54, 0x15, 0x0f, 0x22, 0x10, 0x08, 0x47, 0x43, 0x44, 0x0a, 0x4b, 0x43, 0x44, 0x02, 0x55, 0x55, 0x02, 0x06, 0x44, 0x06, 0x5f, 0x0a, 0x6b, 0x70, 0x05, 0x08);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xb6,
++			       0x45);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xd5,
++			       0x00, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x01, 0x22, 0x00, 0x22, 0x66, 0x11, 0x01, 0x01, 0x23, 0x45, 0x67, 0x9a, 0xbc, 0xaa, 0xbb, 0x45, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x67, 0x88, 0x88, 0x08, 0x81, 0x29, 0x83, 0x88, 0x08, 0x48, 0x81, 0x85, 0x28, 0x68, 0x83, 0x87, 0x88, 0x48, 0x85, 0x00, 0x00, 0x00, 0x00, 0x3c, 0x01);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xcc,
++			       0x09);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xbf,
++			       0x06, 0x02, 0x10, 0x04);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xc7,
++			       0x00, 0x10, 0x00, 0x10);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xe0,
++			       0x00, 0x08, 0x0e, 0x30, 0x34, 0x3f, 0x1c, 0x39, 0x06, 0x0c, 0x0e, 0x11, 0x14, 0x12, 0x14, 0x11, 0x18, 0x00, 0x18, 0x0e, 0x30, 0x34, 0x3f, 0x1c, 0x39, 0x06, 0x0c, 0x0e, 0x11, 0x14, 0x12, 0x14, 0x11, 0x18, 0x0b, 0x17, 0x07, 0x12, 0x0b, 0x17, 0x07, 0x12);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xc0,
++			       0x0c, 0x17);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xc6,
++			       0x08, 0x08);
++	usleep_range(1000, 2000);
++	mipi_dsi_dcs_write_seq(dsi, 0xd4,
++			       0x32);
++	usleep_range(1000, 2000);
++
++	return 0;
++}
++
++/* stock lcm_get_params: HSA 36 HBP 118 HFP 118, VSA 4 VBP 12 VFP 15, PLL 253 MHz -> 506 Mbps x 4 lanes = 60 Hz */
++static const struct drm_display_mode c805_zs_mode = {
++	.hdisplay    = 800,
++	.hsync_start = 800 + 118,
++	.hsync_end   = 800 + 118 + 36,
++	.htotal	     = 800 + 118 + 36 + 118,
++	.vdisplay    = 1280,
++	.vsync_start = 1280 + 15,
++	.vsync_end   = 1280 + 15 + 4,
++	.vtotal	     = 1280 + 15 + 4 + 12,
++	.clock	     = 84324,
++	.width_mm    = 108,
++	.height_mm   = 172,
++};
++
++static const struct hx8394_panel_desc c805_zs_desc = {
++	.mode = &c805_zs_mode,
++	.lanes = 4,
++	.mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_SYNC_PULSE | MIPI_DSI_MODE_LPM,
++	.format = MIPI_DSI_FMT_RGB888,
++	.init_sequence = c805_zs_init_sequence,
++};
++
+ static int hx8394_enable(struct drm_panel *panel)
+ {
+ 	struct hx8394 *ctx = panel_to_hx8394(panel);
+@@ -703,6 +780,7 @@
+ }
+ 
+ static const struct of_device_id hx8394_of_match[] = {
++	{ .compatible = "teclast,p80h-panel", .data = &c805_zs_desc },
+ 	{ .compatible = "hannstar,hsd060bhw4", .data = &hsd060bhw4_desc },
+ 	{ .compatible = "powkiddy,x55-panel", .data = &powkiddy_x55_desc },
+ 	{ .compatible = "microchip,ac40t08a-mipi-panel", .data = &mchp_ac40t08a_desc },

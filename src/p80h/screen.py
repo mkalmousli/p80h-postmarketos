@@ -21,3 +21,30 @@ def from_fb(fb: bytes, yoffset: int = 0) -> bytes:
     rgb = bytearray(W * H * 3)
     rgb[0::3], rgb[1::3], rgb[2::3] = px[2::4], px[1::4], px[0::4]
     return png(bytes(rgb), W, H)
+
+
+OVL0 = 0x14007000  # layer 0 registers (mt8173 layout, see src/re/golden/lk-display.txt)
+
+
+DEVMEM = "/tmp/dm/devmem"  # src/tools/devmem.c: MMIO needs mmap, read() on /dev/mem only works for RAM
+
+
+def _regs(ch, base: int, n: int) -> list[int]:
+    out = ch.sh("; ".join(f"{DEVMEM} {base + 4 * i:#x}" for i in range(n)))
+    return [int(v, 16) for v in out.split()]
+
+
+def scanout(ch) -> tuple[bytes, dict]:
+    """What the panel is fed right now: OVL0 layer 0 address/size/pitch -> that memory -> PNG (any kernel, any fb)."""
+    src_con = _regs(ch, OVL0 + 0x2c, 1)[0]
+    con, _, size, _, _, pitch = _regs(ch, OVL0 + 0x30, 6)[:6]
+    addr = _regs(ch, OVL0 + 0xf40, 1)[0]
+    w, h, stride = size & 0xFFFF, size >> 16, pitch & 0xFFFF
+    info = {"layer_en": src_con & 1, "addr": hex(addr), "w": w, "h": h, "pitch": stride, "con": hex(con)}
+    if not (src_con & 1 and w and h and stride >= 4 * w):
+        return b"", info
+    fb = ch.get("/dev/mem", addr, stride * h)
+    px = b"".join(fb[y * stride:y * stride + 4 * w] for y in range(h))
+    rgb = bytearray(w * h * 3)
+    rgb[0::3], rgb[1::3], rgb[2::3] = px[2::4], px[1::4], px[0::4]
+    return png(bytes(rgb), w, h), info

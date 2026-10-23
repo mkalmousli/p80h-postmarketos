@@ -36,7 +36,14 @@
 		ranges;
 
 		atf@43000000 { reg = <0 0x43000000 0 0x30000>; no-map; };
-		ramlog@43f00000 { reg = <0 0x43f00000 0 0x10000>; no-map; };	/* persistent RAM console, see mt8163-ramlog.c */
+		/* the stock ram_console window: LK keeps it across watchdog resets, so pstore survives a crashed boot */
+		ramoops@43f00000 {
+			compatible = "ramoops";
+			reg = <0 0x43f00000 0 0x10000>;
+			record-size = <0x2000>;
+			console-size = <0xe000>;
+			no-map;
+		};
 	};
 };
 
@@ -115,6 +122,68 @@
 		mount-matrix = "0", "-1", "0",
 			       "-1", "0", "0",
 			       "0", "0", "-1";
+	};
+};
+
+/*
+ * Panel C805 ZS HX8394-A01 (ITEMS LCM). Stock lcd_power_en drives GPIO83 and GPIO21 high (then 50 ms),
+ * lcd_reset drives GPIO19; both rails are plain GPIO switches.
+ */
+/ {
+	/* reboot reasons for LK in MT6323 RTC_PDN1, values from the stock hal_rtc_mark_mode() */
+	reboot-mode {
+		compatible = "teclast,p80h-reboot-mode";
+		mediatek,pmic = <&pmic>;
+		mode-recovery = <0x10>;
+		mode-bootloader = <0x2000>;
+		mode-fastboot = <0x2000>;
+	};
+
+	panel_vcc: regulator-panel-vcc {
+		compatible = "regulator-fixed";
+		regulator-name = "panel_vcc";
+		gpio = <&pio 83 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-boot-on;
+	};
+
+	panel_iovcc: regulator-panel-iovcc {
+		compatible = "regulator-fixed";
+		regulator-name = "panel_iovcc";
+		gpio = <&pio 21 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-boot-on;
+		startup-delay-us = <50000>;
+	};
+};
+
+&mipi_tx0 {
+	status = "okay";
+};
+
+&dsi0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	panel@0 {
+		compatible = "teclast,p80h-panel";
+		reg = <0>;
+		reset-gpios = <&pio 19 GPIO_ACTIVE_LOW>;
+		vcc-supply = <&panel_vcc>;
+		iovcc-supply = <&panel_iovcc>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&dsi0_out>;
+			};
+		};
+	};
+
+	port {	/* mtk_dsi looks up its sink at port 0, endpoint 0 */
+		dsi0_out: endpoint {
+			remote-endpoint = <&panel_in>;
+		};
 	};
 };
 

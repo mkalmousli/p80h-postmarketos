@@ -85,3 +85,12 @@ Hypothesis -> test -> result. One change per run.
 - Result: confirmed first boot. `p80h-hw i2cscan` bus1 = 0x60, bus2 = 0x26, reg 0x01 = 0x13, `iio:device0` da280, |a| = 9.49 m/s^2. da280 ignores `mount-matrix`; orientation 7 (x=-y, y=-x, z=-z) has to be applied in userspace (hwdb).
 - Tool: `/usr/local/bin/p80h-hw` (overlay) = i2c get/set/dump/scan + /dev/mem peek/poke on the tablet.
 - Preloader: boot0 dumped from mainline (`/dev/mmcblk0boot0`, 154 KB used, header `EMMC_BOOT`), boot1 empty; both read twice, sha256 in SHA256SUMS.
+
+## Runs 88-103 - DSI/DRM display (from stock RE + golden LK register state)
+- Pipeline from RE: OVL0>COLOR>CCORR>AAL>GAMMA>DITHER>RDMA0>DSI0 (mt8167 routing regs, MT8163-own mutex bits and mm gates), HX8394 init + timings from the stock LCM_DRIVER (`p80h re lcm`), no IOMMU (LK: M4U off).
+- Logs: `local/logs/run-N/` (build, emmclog via `src/tools/diag-kernel.sh N`). pstore at 0x43f00000 is useless: LK rewrites its ram_console header there.
+- 88-91: mm gate table must be dense (clk-mtk sizes it by count) -> -ENOENT engine clock.
+- 93-99: stock DT RDMA0 IRQ (0xc7) wrong; stock /proc/interrupts says SPI 186. CCORR must relay without a CTM.
+- 100: oops in mtk_disp_ovl_irq_handler: LK leaves OVL INTEN 0xe -> mask at probe (0013).
+- 103 (trace points): hang right after mtk_dsi_set_interrupt_enable: LK leaves DSI running (START 1, MODE sync-pulse, INTSTA 0x80000712); handler spins on DSI_BUSY in hard IRQ. Fix 0014: stop engine, cmd mode, wait idle, clear status.
+- Run 104 hypothesis: with 0013+0014 the first modeset completes, DSI-1 lit by mainline, fbcon on fb1. Falsify: emmclog ends inside mtk_dsi_*/panel or oops.

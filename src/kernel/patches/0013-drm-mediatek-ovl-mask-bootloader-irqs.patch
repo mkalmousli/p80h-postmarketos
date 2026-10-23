@@ -1,0 +1,16 @@
+--- a/drivers/gpu/drm/mediatek/mtk_disp_ovl.c
++++ b/drivers/gpu/drm/mediatek/mtk_disp_ovl.c
+@@ -642,6 +642,13 @@
+ 	priv->data = of_device_get_match_data(dev);
+ 	platform_set_drvdata(pdev, priv);
+ 
++	/*
++	 * Disable and clear interrupts a bootloader left on (MT8163 LK: INTEN 0xe), or the first
++	 * frame-done IRQ calls the vblank callback of a CRTC that is not set up yet.
++	 */
++	writel(0x0, priv->regs + DISP_REG_OVL_INTEN);
++	writel(0x0, priv->regs + DISP_REG_OVL_INTSTA);
++
+ 	ret = devm_request_irq(dev, irq, mtk_disp_ovl_irq_handler,
+ 			       IRQF_TRIGGER_NONE, dev_name(dev), priv);
+ 	if (ret < 0)

@@ -1,0 +1,173 @@
+--- a/drivers/clk/mediatek/Makefile
++++ b/drivers/clk/mediatek/Makefile
+@@ -77,6 +77,7 @@
+ obj-$(CONFIG_COMMON_CLK_MT8163) += clk-mt8163-apmixedsys.o clk-mt8163-topckgen.o clk-mt8163-infracfg.o \
+ 				   clk-mt8163-top-divs.o clk-mt8163-top-muxes-a.o clk-mt8163-top-muxes-b.o \
+ 				   clk-mt8163-top-muxes-c.o clk-mt8163-infra-gates.o clk-mt8163-infra-muxes.o
++obj-$(CONFIG_COMMON_CLK_MT8163) += clk-mt8163-mm.o
+ obj-$(CONFIG_COMMON_CLK_MT8173) += clk-mt8173-apmixedsys.o clk-mt8173-infracfg.o \
+ 				   clk-mt8173-pericfg.o clk-mt8173-topckgen.o
+ obj-$(CONFIG_COMMON_CLK_MT8173_IMGSYS) += clk-mt8173-img.o
+--- a/drivers/gpu/drm/mediatek/mtk_drm_drv.c
++++ b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+@@ -333,6 +333,8 @@
+ 	  .data = &mt7623_mmsys_driver_data},
+ 	{ .compatible = "mediatek,mt2712-mmsys",
+ 	  .data = &mt2712_mmsys_driver_data},
++	{ .compatible = "mediatek,mt8163-mmsys",
++	  .data = &mt8167_mmsys_driver_data},
+ 	{ .compatible = "mediatek,mt8167-mmsys",
+ 	  .data = &mt8167_mmsys_driver_data},
+ 	{ .compatible = "mediatek,mt8173-mmsys",
+@@ -750,6 +752,8 @@
+ 	  .data = (void *)MTK_DISP_MUTEX },
+ 	{ .compatible = "mediatek,mt2712-disp-mutex",
+ 	  .data = (void *)MTK_DISP_MUTEX },
++	{ .compatible = "mediatek,mt8163-disp-mutex",
++	  .data = (void *)MTK_DISP_MUTEX },
+ 	{ .compatible = "mediatek,mt8167-disp-mutex",
+ 	  .data = (void *)MTK_DISP_MUTEX },
+ 	{ .compatible = "mediatek,mt8173-disp-mutex",
+--- a/drivers/phy/mediatek/phy-mtk-mipi-dsi.c
++++ b/drivers/phy/mediatek/phy-mtk-mipi-dsi.c
+@@ -181,6 +181,7 @@
+ 
+ static const struct of_device_id mtk_mipi_tx_match[] = {
+ 	{ .compatible = "mediatek,mt2701-mipi-tx", .data = &mt2701_mipitx_data },
++	{ .compatible = "mediatek,mt8163-mipi-tx", .data = &mt8163_mipitx_data },
+ 	{ .compatible = "mediatek,mt8173-mipi-tx", .data = &mt8173_mipitx_data },
+ 	{ .compatible = "mediatek,mt8183-mipi-tx", .data = &mt8183_mipitx_data },
+ 	{ /* sentinel */ }
+--- a/drivers/phy/mediatek/phy-mtk-mipi-dsi.h
++++ b/drivers/phy/mediatek/phy-mtk-mipi-dsi.h
+@@ -40,6 +40,7 @@
+ 					  unsigned long parent_rate);
+ 
+ extern const struct mtk_mipitx_data mt2701_mipitx_data;
++extern const struct mtk_mipitx_data mt8163_mipitx_data;
+ extern const struct mtk_mipitx_data mt8173_mipitx_data;
+ extern const struct mtk_mipitx_data mt8183_mipitx_data;
+ 
+--- a/drivers/phy/mediatek/phy-mtk-mipi-dsi-mt8173.c
++++ b/drivers/phy/mediatek/phy-mtk-mipi-dsi-mt8173.c
+@@ -284,6 +284,14 @@
+ 	.mipi_tx_disable_signal = mtk_mipi_tx_power_off_signal,
+ };
+ 
++/* MT8163: vendor ddp_dsi.c writes RG_MPPLL_PRESERVE (PLL_TOP bits 14:7) = 2, i.e. 1 in bits 15:8; LK leaves PLL_TOP = 0x120 */
++const struct mtk_mipitx_data mt8163_mipitx_data = {
++	.mppll_preserve = 1,
++	.mipi_tx_clk_ops = &mtk_mipi_tx_pll_ops,
++	.mipi_tx_enable_signal = mtk_mipi_tx_power_on_signal,
++	.mipi_tx_disable_signal = mtk_mipi_tx_power_off_signal,
++};
++
+ const struct mtk_mipitx_data mt8173_mipitx_data = {
+ 	.mppll_preserve = 0,
+ 	.mipi_tx_clk_ops = &mtk_mipi_tx_pll_ops,
+--- a/drivers/soc/mediatek/mtk-mmsys.c
++++ b/drivers/soc/mediatek/mtk-mmsys.c
+@@ -59,6 +59,25 @@
+ 	.num_routes = ARRAY_SIZE(mt8167_mmsys_routing_table),
+ };
+ 
++/*
++ * MT8163 routes, values from the vendor ddp_path.c mout/sel maps and the state LK leaves
++ * (0x30 = 1, 0x38 = 1, 0x58 = 1). Same registers as MT8167, but with the value filled in:
++ * mt8167_mmsys_routing_table only sets the mask, so its connects write 0.
++ */
++static const struct mtk_mmsys_routes mt8163_mmsys_routing_table[] = {
++	{ DDP_COMPONENT_OVL0, DDP_COMPONENT_COLOR0, 0x030, BIT(0), BIT(0) },	/* OVL0_MOUT_EN: COLOR0 */
++	{ DDP_COMPONENT_OVL0, DDP_COMPONENT_COLOR0, 0x058, GENMASK(1, 0), 1 },	/* COLOR0_SEL_IN: OVL0 */
++	{ DDP_COMPONENT_DITHER0, DDP_COMPONENT_RDMA0, 0x038, BIT(0), BIT(0) },	/* DITHER_MOUT_EN: RDMA0 */
++	{ DDP_COMPONENT_RDMA0, DDP_COMPONENT_DSI0, 0x06c, GENMASK(2, 0), 2 },	/* RDMA0_SOUT_SEL: DSI0 */
++	{ DDP_COMPONENT_RDMA0, DDP_COMPONENT_DSI0, 0x064, GENMASK(1, 0), 1 },	/* DSI0_SEL_IN: RDMA0 */
++};
++
++static const struct mtk_mmsys_driver_data mt8163_mmsys_driver_data = {
++	.clk_driver = "clk-mt8163-mm",
++	.routes = mt8163_mmsys_routing_table,
++	.num_routes = ARRAY_SIZE(mt8163_mmsys_routing_table),
++};
++
+ static const struct mtk_mmsys_driver_data mt8173_mmsys_driver_data = {
+ 	.clk_driver = "clk-mt8173-mm",
+ 	.routes = mt8173_mmsys_routing_table,
+@@ -461,6 +480,7 @@
+ 	{ .compatible = "mediatek,mt6779-mmsys", .data = &mt6779_mmsys_driver_data },
+ 	{ .compatible = "mediatek,mt6795-mmsys", .data = &mt6795_mmsys_driver_data },
+ 	{ .compatible = "mediatek,mt6797-mmsys", .data = &mt6797_mmsys_driver_data },
++	{ .compatible = "mediatek,mt8163-mmsys", .data = &mt8163_mmsys_driver_data },
+ 	{ .compatible = "mediatek,mt8167-mmsys", .data = &mt8167_mmsys_driver_data },
+ 	{ .compatible = "mediatek,mt8173-mmsys", .data = &mt8173_mmsys_driver_data },
+ 	{ .compatible = "mediatek,mt8183-mmsys", .data = &mt8183_mmsys_driver_data },
+--- a/drivers/soc/mediatek/mtk-mutex.c
++++ b/drivers/soc/mediatek/mtk-mutex.c
+@@ -47,6 +47,21 @@
+ #define MT8186_MUTEX_EOF_DSI0			(MT8186_MUTEX_SOF_DSI0 << 6)
+ #define MT8186_MUTEX_EOF_DPI0			(MT8186_MUTEX_SOF_DPI0 << 6)
+ 
++/* MT8163, vendor ddp_path.c module_mutex_map; LK's MUTEX0_MOD0 0x3f940 = OVL0, RDMA0, COLOR..PWM0 */
++#define MT8163_MUTEX_MOD_DISP_OVL0		6
++#define MT8163_MUTEX_MOD_DISP_OVL1		7
++#define MT8163_MUTEX_MOD_DISP_RDMA0		8
++#define MT8163_MUTEX_MOD_DISP_RDMA1		9
++#define MT8163_MUTEX_MOD_DISP_WDMA0		10
++#define MT8163_MUTEX_MOD_DISP_COLOR		11
++#define MT8163_MUTEX_MOD_DISP_CCORR		12
++#define MT8163_MUTEX_MOD_DISP_AAL		13
++#define MT8163_MUTEX_MOD_DISP_GAMMA		14
++#define MT8163_MUTEX_MOD_DISP_DITHER		15
++#define MT8163_MUTEX_MOD_DISP_UFOE		16
++#define MT8163_MUTEX_MOD_DISP_PWM		17
++#define MT8163_MUTEX_MOD_DISP_WDMA1		18
++
+ #define MT8167_MUTEX_MOD_DISP_PWM		1
+ #define MT8167_MUTEX_MOD_DISP_OVL0		6
+ #define MT8167_MUTEX_MOD_DISP_OVL1		7
+@@ -377,6 +392,22 @@
+ 	[DDP_COMPONENT_WDMA1] = MT2712_MUTEX_MOD_DISP_WDMA1,
+ };
+ 
++static const u8 mt8163_mutex_mod[DDP_COMPONENT_ID_MAX] = {
++	[DDP_COMPONENT_AAL0] = MT8163_MUTEX_MOD_DISP_AAL,
++	[DDP_COMPONENT_CCORR] = MT8163_MUTEX_MOD_DISP_CCORR,
++	[DDP_COMPONENT_COLOR0] = MT8163_MUTEX_MOD_DISP_COLOR,
++	[DDP_COMPONENT_DITHER0] = MT8163_MUTEX_MOD_DISP_DITHER,
++	[DDP_COMPONENT_GAMMA] = MT8163_MUTEX_MOD_DISP_GAMMA,
++	[DDP_COMPONENT_OVL0] = MT8163_MUTEX_MOD_DISP_OVL0,
++	[DDP_COMPONENT_OVL1] = MT8163_MUTEX_MOD_DISP_OVL1,
++	[DDP_COMPONENT_PWM0] = MT8163_MUTEX_MOD_DISP_PWM,
++	[DDP_COMPONENT_RDMA0] = MT8163_MUTEX_MOD_DISP_RDMA0,
++	[DDP_COMPONENT_RDMA1] = MT8163_MUTEX_MOD_DISP_RDMA1,
++	[DDP_COMPONENT_UFOE] = MT8163_MUTEX_MOD_DISP_UFOE,
++	[DDP_COMPONENT_WDMA0] = MT8163_MUTEX_MOD_DISP_WDMA0,
++	[DDP_COMPONENT_WDMA1] = MT8163_MUTEX_MOD_DISP_WDMA1,
++};
++
+ static const u8 mt8167_mutex_mod[DDP_COMPONENT_ID_MAX] = {
+ 	[DDP_COMPONENT_AAL0] = MT8167_MUTEX_MOD_DISP_AAL,
+ 	[DDP_COMPONENT_CCORR] = MT8167_MUTEX_MOD_DISP_CCORR,
+@@ -731,6 +762,14 @@
+ 	.mutex_sof_reg = MT2701_MUTEX0_SOF0,
+ };
+ 
++static const struct mtk_mutex_data mt8163_mutex_driver_data = {
++	.mutex_mod = mt8163_mutex_mod,
++	.mutex_sof = mt8167_mutex_sof,
++	.mutex_mod_reg = MT2701_MUTEX0_MOD0,
++	.mutex_sof_reg = MT2701_MUTEX0_SOF0,
++	.no_clk = true,
++};
++
+ static const struct mtk_mutex_data mt8167_mutex_driver_data = {
+ 	.mutex_mod = mt8167_mutex_mod,
+ 	.mutex_sof = mt8167_mutex_sof,
+@@ -1130,6 +1169,7 @@
+ 	{ .compatible = "mediatek,mt2701-disp-mutex", .data = &mt2701_mutex_driver_data },
+ 	{ .compatible = "mediatek,mt2712-disp-mutex", .data = &mt2712_mutex_driver_data },
+ 	{ .compatible = "mediatek,mt6795-disp-mutex", .data = &mt6795_mutex_driver_data },
++	{ .compatible = "mediatek,mt8163-disp-mutex", .data = &mt8163_mutex_driver_data },
+ 	{ .compatible = "mediatek,mt8167-disp-mutex", .data = &mt8167_mutex_driver_data },
+ 	{ .compatible = "mediatek,mt8173-disp-mutex", .data = &mt8173_mutex_driver_data },
+ 	{ .compatible = "mediatek,mt8183-disp-mutex", .data = &mt8183_mutex_driver_data },
