@@ -44,6 +44,7 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("try-kernel", help="flash an image to recovery, boot it, report the kernel").add_argument("image")
     sub.add_parser("install", help="image -> boot partition, stock boot image -> recovery").add_argument("image")
     sub.add_parser("provision", help="push the openbox session (Xorg fbdev) onto the tablet's rootfs")
+    sub.add_parser("re", help="ground truth from the stock kernel").add_argument("what", choices=["i2c", "items"])
     sub.add_parser("touchfw", help="extract the touchscreen firmware from the stock boot.bin")
     sub.add_parser("look", help="photograph the tablet screen with the adb phone and print the OCR text")
     r = sub.add_parser("release", help="stage built images + SHA256SUMS for a public GitHub release")
@@ -60,6 +61,14 @@ def main(argv: list[str] | None = None) -> None:
     if a.cmd == "provision":
         from .provision import provision
         return print(provision())
+    if a.cmd == "re" and a.what == "items":
+        from .re.items import items
+        return print(*(f"{k} = {v}" for k, v in items().items()), sep="\n")
+    if a.cmd == "re":
+        from .re.i2c import board_info
+        for caller, bus, name, addr, irq in board_info():
+            print(f"i2c{bus} {addr:#04x} {name:20} irq={irq} ({caller})")
+        return
     if a.cmd == "touchfw":
         from .touchfw import extract
         return print(extract())

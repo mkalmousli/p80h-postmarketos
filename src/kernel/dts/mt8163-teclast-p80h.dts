@@ -110,6 +110,23 @@
 		avdd-supply = <&mt6323_vgp2_reg>;
 		silead,max-fingers = <5>;
 	};
+
+	/*
+	 * FAN5405 (stock fan5405_init: i2c_register_board_info bus 0, addr 0x6a; the
+	 * vendor DT's bq24296@6b node is stale). Same register map as bq24156, which
+	 * bq2415x detects from PN=0 at 0x6a. Limits from the stock register dump
+	 * ([fan5405] 00=d0 01=78 02=8e 03=41 04=84 05=03 06=70), Rsense 68 mOhm per datasheet.
+	 */
+	charger@6a {
+		compatible = "ti,bq24156";
+		reg = <0x6a>;
+		ti,current-limit = <500>;
+		ti,weak-battery-voltage = <3700>;
+		ti,battery-regulation-voltage = <4200>;
+		ti,charge-current = <550>;
+		ti,termination-current = <250>;
+		ti,resistor-sense = <68>;
+	};
 };
 
 /* micro-SD slot; the card rail (VMCH) is switched by the PMIC, so until that driver exists a fixed 3.0 V stands in */
@@ -137,7 +154,8 @@
 	bus-width = <4>;
 	max-frequency = <50000000>;
 	cap-sd-highspeed;
-	cd-gpios = <&pio 49 GPIO_ACTIVE_LOW>;
+	/* ITEMS sd.dete.pin = 28, sd.dete.enit.num = 6 (GPIO28 is EINT6); douglas used 49. Polarity not yet confirmed */
+	cd-gpios = <&pio 28 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default", "state_uhs";
 	pinctrl-0 = <&mmc1_pins>;
 	pinctrl-1 = <&mmc1_pins>;

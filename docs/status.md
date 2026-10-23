@@ -71,3 +71,11 @@ Hypothesis -> test -> result. One change per run.
 - State: mt6323 regulator driver already probes (chip ID 0x2023, 30 regulators, unnamed). Hypothesis: named regulator subnodes (vendor names from douglas.dts) plus keys/rtc/pwrc nodes make the power key, RTC and poweroff work, and touch/SD get real rails (vgp2, vmch/vmc).
 - Falsify: no `mtk-pmic-keys` input or /dev/rtc0, touch or mmc1 probe regressions, tablet hangs at boot.
 - Result run 83: confirmed. mtk-pmic-keys input, /dev/rtc0 (mt6323-rtc), named regulators; touch and SD use vgp2/vmch/vmc; touch still probes. Note: `install` readback of a 16 MiB partition can exceed the daemon timeout once; rerun.
+
+## Run 84 - charger (bq24297 on I2C2)
+- Hypothesis: charger is a TI bq2429x at 0x6b on I2C2 (SDA/SCL pins 77/78), INT GPIO23 (EINT1), CE GPIO22 low (vendor douglas.dts); mainline bq24190 handles it, giving a power_supply with charge status and input current.
+- Falsify: no `bq24190` power_supply in /sys/class/power_supply, or i2c transfer errors at 0x6b.
+- Run 84 result 1: a gpio-hog child of the mtk pinctrl node is parsed as a pin group -> probe -22 and no I2C at all. CE is now a pinmux gpio+output-low group in the charger's pinctrl state.
+- Run 84 re-analysis (stock binary, no flash): the charger is **not** a bq2429x. The stock kernel only contains a `fan5405` driver; `fan5405_init` calls `i2c_register_board_info(0, {"fan5405", 0x6a})`, and the stock dmesg shows it live (`[fan5405] [0x0]=0xd0 [0x1]=0x78 [0x2]=0x8e [0x3]=0x41 ...`). The `bq24296@6b` node in the stock DT and douglas' bq24297 are leftovers from other boards. Run 84's I2C2/GPIO22/23 pins were douglas guesses and are dropped.
+- Run 85 hypothesis: FAN5405 on I2C0 @0x6a, driven by mainline `bq2415x` as `ti,bq24156` (PN=0 at 0x6a), limits from the stock register dump (500 mA input, 3.7 V weak, 4.2 V, 550 mA charge, 250 mA term, 68 mOhm). Falsify: no `bq24156-0` in /sys/class/power_supply, or reg 03 reads other than 0x41.
+- Result run 86 (= run 85 hypothesis, kernel-86): confirmed on first boot. `bq24156-0` power_supply, `chip bq24156, revision 1.1, vender code 010`, USB online, Charging. SD card detect on GPIO28/EINT6 (`mt-eint 6 ... 11240000.mmc cd`), reads high with no card (consistent with active-low; verify with a card).
