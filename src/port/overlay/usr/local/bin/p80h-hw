@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""p80h-hw: raw hardware access on the tablet.
+  i2c BUS ADDR REG [VAL]   read/write one byte (SMBus byte data, no driver binding needed: I2C_SLAVE_FORCE)
+  i2cdump BUS ADDR         registers 0x00-0xff
+  i2cscan BUS              addresses that ACK a one-byte read
+  mem ADDR [COUNT|=VAL]    32-bit physical reads (COUNT words) or one write, via /dev/mem
+"""
+import ctypes, fcntl, mmap, os, struct, sys
+
+I2C_SLAVE_FORCE, I2C_SMBUS = 0x0706, 0x0720
+
+
+def smbus(fd, write, reg, val=0):
+    blk = ctypes.create_string_buffer(struct.pack("B", val), 34)
+    args = struct.pack("BBxxIP", 0 if write else 1, reg, 2, ctypes.addressof(blk))  # size 2 = BYTE_DATA
+    fcntl.ioctl(fd, I2C_SMBUS, args)
+    return blk.raw[0]
+
+
+def i2c(bus, addr):
+    fd = os.open(f"/dev/i2c-{bus}", os.O_RDWR)
+    fcntl.ioctl(fd, I2C_SLAVE_FORCE, addr)
+    return fd
+
+
+def mem(addr, count=1, val=None):
+    fd = os.open("/dev/mem", os.O_RDWR | os.O_SYNC)
+    base = addr & ~0xFFF
+    m = mmap.mmap(fd, (addr - base + 4 * count + 0xFFF) & ~0xFFF, offset=base)
+    off = addr - base
+    if val is not None:
+        m[off:off + 4] = struct.pack("<I", val)
+        return
+    for i in range(count):
+        print(f"{addr + 4 * i:08x}: {struct.unpack_from('<I', m, off + 4 * i)[0]:08x}")
+
+
+def main(a):
+    n = lambda s: int(s, 0)
+    if a[0] == "i2c":
+        fd = i2c(n(a[1]), n(a[2]))
+        if len(a) > 4:
+            smbus(fd, True, n(a[3]), n(a[4]))
+        else:
+            print(f"{smbus(fd, False, n(a[3])):#04x}")
+    elif a[0] == "i2cdump":
+        fd = i2c(n(a[1]), n(a[2]))
+        for row in range(0, 256, 16):
+            cells = []
+            for r in range(row, row + 16):
+                try:
+                    cells.append(f"{smbus(fd, False, r):02x}")
+                except OSError:
+                    cells.append("XX")
+            print(f"{row:02x}: {' '.join(cells)}")
+    elif a[0] == "i2cscan":
+        for addr in range(0x03, 0x78):
+            try:
+                smbus(i2c(n(a[1]), addr), False, 0)
+                print(f"{addr:#04x}")
+            except OSError:
+                pass
+    elif a[0] == "mem":
+        if len(a) > 2 and a[2].startswith("="):
+            mem(n(a[1]), 1, n(a[2][1:]))
+        else:
+            mem(n(a[1]), n(a[2]) if len(a) > 2 else 1)
+    else:
+        sys.exit(__doc__)
+
+
+main(sys.argv[1:] or ["help"])

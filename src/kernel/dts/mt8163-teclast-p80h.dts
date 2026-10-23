@@ -76,6 +76,48 @@
 	};
 };
 
+&pio {
+	i2c1_pins: i2c1 {
+		pins {
+			pinmux = <0x3901>, <0x3a01>;	/* GPIO57/58 = SDA1/SCL1 */
+			bias-disable;
+		};
+	};
+	i2c2_pins: i2c2 {
+		pins {
+			pinmux = <0x4d01>, <0x4e01>;	/* GPIO77/78 = SDA2/SCL2 */
+			bias-disable;
+		};
+	};
+};
+
+/* SY8827 buck at 0x60 (stock sym827_init); no node yet: it likely feeds VPROC, so nothing may touch it before it is understood */
+&i2c1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1_pins>;
+	clock-frequency = <400000>;
+	status = "okay";
+};
+
+&i2c2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c2_pins>;
+	clock-frequency = <400000>;
+	status = "okay";
+
+	/*
+	 * MIR3DA (stock mir3da_init, ITEMS accelerometer.i2c = 2). ITEMS orientation 7 = stock
+	 * hwmsen map {-1,-1,-1}/{1,0,2}: x = -y_raw, y = -x_raw, z = -z_raw.
+	 */
+	accelerometer@26 {
+		compatible = "miramems,da280";
+		reg = <0x26>;
+		mount-matrix = "0", "-1", "0",
+			       "-1", "0", "0",
+			       "0", "0", "-1";
+	};
+};
+
 &mmc0 {
 	vmmc-supply = <&vmmc>;
 	bus-width = <8>;

@@ -79,3 +79,9 @@ Hypothesis -> test -> result. One change per run.
 - Run 84 re-analysis (stock binary, no flash): the charger is **not** a bq2429x. The stock kernel only contains a `fan5405` driver; `fan5405_init` calls `i2c_register_board_info(0, {"fan5405", 0x6a})`, and the stock dmesg shows it live (`[fan5405] [0x0]=0xd0 [0x1]=0x78 [0x2]=0x8e [0x3]=0x41 ...`). The `bq24296@6b` node in the stock DT and douglas' bq24297 are leftovers from other boards. Run 84's I2C2/GPIO22/23 pins were douglas guesses and are dropped.
 - Run 85 hypothesis: FAN5405 on I2C0 @0x6a, driven by mainline `bq2415x` as `ti,bq24156` (PN=0 at 0x6a), limits from the stock register dump (500 mA input, 3.7 V weak, 4.2 V, 550 mA charge, 250 mA term, 68 mOhm). Falsify: no `bq24156-0` in /sys/class/power_supply, or reg 03 reads other than 0x41.
 - Result run 86 (= run 85 hypothesis, kernel-86): confirmed on first boot. `bq24156-0` power_supply, `chip bq24156, revision 1.1, vender code 010`, USB online, Charging. SD card detect on GPIO28/EINT6 (`mt-eint 6 ... 11240000.mmc cd`), reads high with no card (consistent with active-low; verify with a card).
+
+## Run 87 - I2C1/I2C2 + accelerometer (from stock ground truth)
+- Hypothesis: I2C1 (pins 57/58) holds the SY8827 at 0x60 and I2C2 (77/78) the MIR3DA at 0x26 (`p80h re i2c`, ITEMS `accelerometer.i2c = 2`); MIR3DA has chip ID 0x13 like DA280, so mainline `da280` binds. Falsify: no ACK at 0x60/0x26 or no iio device.
+- Result: confirmed first boot. `p80h-hw i2cscan` bus1 = 0x60, bus2 = 0x26, reg 0x01 = 0x13, `iio:device0` da280, |a| = 9.49 m/s^2. da280 ignores `mount-matrix`; orientation 7 (x=-y, y=-x, z=-z) has to be applied in userspace (hwdb).
+- Tool: `/usr/local/bin/p80h-hw` (overlay) = i2c get/set/dump/scan + /dev/mem peek/poke on the tablet.
+- Preloader: boot0 dumped from mainline (`/dev/mmcblk0boot0`, 154 KB used, header `EMMC_BOOT`), boot1 empty; both read twice, sha256 in SHA256SUMS.
