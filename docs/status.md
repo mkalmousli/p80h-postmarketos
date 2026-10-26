@@ -257,3 +257,10 @@ Hypothesis: Openbox + tint2 + jgmenu is the small/fast stack (no custom WM); `p8
 autostart) draws only the bottom bar over X's fbdev scan-out and restores the covered pixels afterwards, so deploys show
 progress on the desktop too. Falsifier: the bar never appears during `p80h push` of a >= 1 MiB file, or X content under it
 stays corrupted afterwards (X not on fbdev: then it needs an X-side renderer).
+
+## Run 154 result - Openbox desktop provisioned over USB
+- Kernel 154 deployed (bar, battery fix). `p80h provision` over the cable: 49 packages + all optional apps ok; xfce session
+  gone, Openbox + tint2 (ePapirus icons) + p80h-splash --bar autostart. Firefox renders pages (HOME=/root needed), 423 MiB used
+  with it open. tint2 logs BadDrawable from a systray client (harmless so far). Screenshot route: `scrot` on the tablet + `get`.
+- Open: bar visibility under X (modesetting, not fbdev) unverified; panel only 30 px high; no cpufreq (1001 MHz fixed);
+  speaker silent; no GPU; camera/suspend untested.
