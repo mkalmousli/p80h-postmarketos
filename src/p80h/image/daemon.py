@@ -34,7 +34,7 @@ def install(root: Path, binary: Path, rescue: bool, wait: bool = False, clock: b
     shutil.copy(binary, dest)
     dest.chmod(0o755)
     splash = root / "sbin" / "p80h-splash"  # quiet animated boot screen; the desktop session stops it before X
-    shutil.copy(compile_charge(binary.parent / "p80h-splash", BOOT_SRC / "splash.c"), splash)
+    shutil.copy(compile_charge(binary.parent / "p80h-splash", BOOT_SRC), splash)
     splash.chmod(0o755)
     park = "\nwhile true; do sleep 1; done" if rescue else ""
     if clock:  # the tablet is a clock: never mount the rootfs, the clock owns the screen and the power key

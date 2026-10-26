@@ -56,7 +56,6 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("re", help="ground truth from the stock kernel").add_argument("what", choices=["i2c", "items", "lcm", "battery", "audio", "logo-art"])
     sub.add_parser("emmclog", help="raw eMMC kernel log (expdb): 'clear' or save run N to local/logs/run-N").add_argument("run")
     sub.add_parser("touchfw", help="extract the touchscreen firmware from the stock boot.bin")
-    sub.add_parser("look", help="photograph the tablet screen with the adb phone and print the OCR text")
     r = sub.add_parser("release", help="stage built images + SHA256SUMS for a public GitHub release")
     r.add_argument("tag")
     r.add_argument("files", nargs="+")
@@ -131,9 +130,6 @@ def main(argv: list[str] | None = None) -> None:
     if a.cmd == "touchfw":
         from .touchfw import extract
         return print(extract())
-    if a.cmd == "look":
-        from .look import read_screen
-        return print(read_screen())
     if a.cmd == "wrap":
         from .image.bootimg import wrap_kernel
         out = Path(a.kernel.replace("kernel-", "recovery-").replace(".bin", ".img"))

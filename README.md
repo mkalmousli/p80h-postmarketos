@@ -9,7 +9,7 @@ State: mainline boots to initramfs, reachable over USB-NCM (`p80hd` at 172.16.42
 ## `src/` — everything we write (git)
 | Path | What |
 |---|---|
-| `p80h/` | Python CLI (`uv run p80h ...`): brom, kernel build, image build, try-kernel, camera OCR |
+| `p80h/` | Python CLI (`uv run p80h ...`): brom, kernel build, image build, try-kernel |
 | `kernel/` | our dts (`dts/`), patch series (`patches/`), `config/p80h.fragment`, drivers, CREDITS.md |
 | `daemon/` | C source of `p80hd`, the on-tablet daemon (root service over USB-net) |
 | `port/` | `pmaports/` pmOS device+kernel pkgs · `overlay/` rootfs tree mirrored onto / and `packages` (apk list), both applied by `p80h provision` · `stock/` stock boot inputs |
@@ -29,7 +29,7 @@ State: mainline boots to initramfs, reachable over USB-NCM (`p80hd` at 172.16.42
 | `re/` | decompiled stock DTB (`dt/`), early probe boot image |
 | `trees/` | `linux` (mainline v6.12.99 work tree) |
 | `vendor/` | `mtkclient` (set `P80H_MTK`), `pmbootstrap`, `pmaports` (use `src/tools/pmbootstrap.cfg`) |
-| `out/` | built kernels/images/logs (`last-boot.log`, `screen.txt`), `legacy-images/` |
+| `out/` | built kernels/images/logs (`last-boot.log`), `legacy-images/` |
 | `build/pmos-work/` | pmbootstrap chroots · `cache/` kernel build cache |
 
 Safety: a hung test kernel falls back to stock after ~78 s (`try-kernel` flashes recovery only).

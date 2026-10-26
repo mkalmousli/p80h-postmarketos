@@ -11,6 +11,7 @@
 void cmd_reboot(int fd, const char *arg)
 {
 	say(fd, "OK\n");
+	progress(!strcmp(arg, "off") ? "POWERING OFF" : "RESTARTING", -1);
 	sync();
 	if (!strcmp(arg, "off"))
 		syscall(SYS_reboot, LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2, LINUX_REBOOT_CMD_POWER_OFF, 0);

@@ -13,7 +13,10 @@ void cmd_put(int fd, const char *arg)
 	char path[1024], tmp[1100], buf[65536];
 	long size, n;
 	unsigned mode = 0644;
-	int dev, f;
+	long total;
+	int dev, f, pct = -1, last = -1;
+	char label[160];
+	const char *name;
 
 	if (sscanf(arg, "%1023s %ld %o", path, &size, &mode) < 2) {
 		say(fd, "ERR usage\n");
@@ -29,13 +32,21 @@ void cmd_put(int fd, const char *arg)
 	}
 	if (!dev)
 		fchmod(f, mode);  /* open() applies the mode only on create, and through the umask */
+	name = strrchr(path, '/') ? strrchr(path, '/') + 1 : path;
+	snprintf(label, sizeof(label), "%s %.28s", dev ? "WRITING" : "RECEIVING", name);
+	total = size;
 	for (; size > 0; size -= n) {
+		pct = total >= (1 << 20) ? (int)((total - size) * 100 / total) : -2;	/* only big transfers get a screen */
+		if (pct != last && pct != -2)
+			progress(label, last = pct);
 		n = read(fd, buf, size < (long)sizeof(buf) ? size : (long)sizeof(buf));
 		if (n <= 0 || write_full(f, buf, n))
 			break;
 	}
 	fsync(f);
 	close(f);
+	if (last >= 0)
+		progress("", 0);
 	if (!size && !dev)
 		size = rename(tmp, path);
 	else if (!dev)

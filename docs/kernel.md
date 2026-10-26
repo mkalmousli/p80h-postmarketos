@@ -15,4 +15,3 @@ Every stage is flashed to `boot` through the daemon; the BROM path always restor
 
 ## Log channels (bring-up)
 - RAM log: `mt8163-ramlog` mirrors the console into the third page of the stock framebuffer (phys 0x7f3d0000); after the watchdog reset `try-kernel` scans `/dev/fb0` for `P80HLOG` and writes `local/out/last-boot.log`. Fast and complete.
-- Camera OCR fallback: `p80h look` photographs the tablet screen with a phone on adb; `try-kernel` stores one OCR at 55 s in `local/out/screen.txt`.

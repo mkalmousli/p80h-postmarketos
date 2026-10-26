@@ -11,4 +11,4 @@ Goal: postmarketOS on the Teclast P80h (MT8163) with a vanilla mainline kernel. 
 ## Dev loop
 1. `uv run p80h kernel local/out/kernel-N.bin --initramfs <pmos initramfs> --failsafe 60`
 2. wrap + `uv run p80h try-kernel local/out/recovery-N.img` (flashes recovery only; the watchdog falls back to stock after ~78 s)
-3. `local/out/screen.txt` = OCR of the tablet screen from the phone camera (`p80h look`), one photo per run. Last `calling X` without `returned` names the stalled initcall.
+3. Boot output: the tablet's eMMC kernel log (`p80h emmclog <run>`), or `dmesg` over the daemon once it is up.

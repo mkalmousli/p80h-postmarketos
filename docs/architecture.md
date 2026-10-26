@@ -40,7 +40,7 @@ Partitions that matter: `boot`, `recovery` (test kernels go here), `userdata` (r
  flash recovery ONLY ─▶ tablet boots it ─┬─ OK:   p80hd answers over USB ─▶ inspect live
                                          └─ hang: watchdog ~78 s ─▶ falls back to stock boot
         ▼
- read back logs: expdb raw eMMC log ─▶ local/out/last-boot.log   (camera OCR ─▶ local/out/screen.txt)
+ read back logs: expdb raw eMMC log ─▶ local/out/last-boot.log
         ▼
  record hypothesis → result in docs/status.md, commit
 ```

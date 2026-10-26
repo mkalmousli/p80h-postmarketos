@@ -1,14 +1,8 @@
 """try-kernel: flash a kernel image into recovery and boot it, without touching the working boot partition."""
-import shutil
 import time
 from pathlib import Path
 
-from . import look
 from .channels.daemon import DaemonChannel
-
-
-def look_ok() -> bool:
-    return "	device" in look.adb("devices")
 
 
 def _daemon_up() -> DaemonChannel | None:
@@ -70,8 +64,6 @@ def try_kernel(image: Path, boot_secs: float = 90) -> str:
     node = "/dev/" + ch.sh("grep -l PARTNAME=recovery$ /sys/class/block/mmcblk0p*/uevent").split("/")[4]
     ch.put(node, image.read_bytes())
     ch.reboot("recovery")
-    if shutil.which("adb") and look_ok():
-        look.snap(Path("local/out/screen.txt"), 55)
     if not _wait(lambda: not _daemon_up(), 30):
         return "FAILED (tablet did not reboot)"
     t0 = time.time()

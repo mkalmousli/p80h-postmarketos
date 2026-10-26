@@ -9,11 +9,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#define LW 1280
-#define LH 800
+#include "splash.h"
 #define R 74.f		/* ring radius, px */
 #define BOX 100		/* half size of the redrawn square */
-static const float acc[3] = {76, 195, 255};	/* P80h accent, #4cc3ff */
 static volatile sig_atomic_t quit;
 
 static float sat(float v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
@@ -36,14 +34,15 @@ static void tables(void)
 	for (int i = 0; i < TURN; i++) tail_lut[i] = powf(1 - (float)i / TURN, 3);	/* 1 at the head, 0 a turn behind */
 }
 
-static void frame(unsigned char *fb, int stride, float k, float t)
+static void frame(unsigned char *fb, int stride, float k, float t, int pct)
 {
 	float breath = .5f + .5f * sinf(t * .0035f);
 	int head = (int)(t * .0042f / 6.2832f * TURN) % TURN;
 	for (int y = 0; y < SZ; y++)
 		for (int x = 0; x < SZ; x++) {
 			float d = d_[y][x], ring = sat(2.5f - fabsf(d - R));
-			float l = base[y][x] + ring * tail_lut[(head - ang[y][x] + TURN) % TURN];
+			float on = pct < 0 ? tail_lut[(head - ang[y][x] + TURN) % TURN] : (ang[y][x] - TURN / 4 + TURN) % TURN < pct * TURN / 100 ? .95f : 0;
+			float l = base[y][x] + ring * on;	/* comet, or the arc filled clockwise from the top */
 			if (d < 10) l += sat(6 + 4 * breath - d) * (.5f + .5f * breath);
 			l = sat(l) * k;
 			unsigned px = (unsigned)(acc[0] * l) << 16 | (unsigned)(acc[1] * l) << 8 | (unsigned)(acc[2] * l);
@@ -65,16 +64,30 @@ int main(void)
 	unsigned char *fb = mmap(NULL, fx.line_length * v.yres, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (fb == MAP_FAILED) return 1;
 	for (unsigned i = 0; i < fx.line_length * v.yres / 4; i++) ((unsigned *)fb)[i] = 0;
+	v.yoffset = 0;
+	ioctl(fd, FBIOPAN_DISPLAY, &v);	/* make the display (re)scan fb0, e.g. after X left */
 	tables();
+	ui_open();
 	signal(SIGTERM, stop);
 	signal(SIGINT, stop);
-	float t0 = ms(), tq = 0;
+	float t0 = ms(), tq = 0, seen = 0;
+	char label[96] = "";
+	int pct = -1, ly = LH / 2 + R + 50;
 	for (;;) {
 		float t = ms() - t0, k = sat(t / 600);	/* fade in */
-		if (t > 90000) quit = 1;	/* never outlive a desktop that forgot to stop us */
-		if (quit && !tq) tq = t;
+		if (ui_poll(label, sizeof(label), &pct)) {	/* an action from p80hd: label + arc, empty label = done */
+			seen = t;
+			ui_clear(fb, fx.line_length, LW / 2, ly);
+			if (*label) ui_text(fb, fx.line_length, LW / 2, ly, label, 1);
+		}
+		if (!*label) pct = -1;
+		if (t - seen > 90000) quit = 1;	/* never outlive a desktop that forgot to stop us */
+		if (quit && !tq) {
+			tq = t;
+			ui_clear(fb, fx.line_length, LW / 2, ly);
+		}
 		if (quit) k = sat(1 - (t - tq) / 200) * k;
-		frame(fb, fx.line_length, k, t);
+		frame(fb, fx.line_length, k, t, pct);
 		if (quit && k <= 0) return 0;
 		usleep(16000);
 	}
