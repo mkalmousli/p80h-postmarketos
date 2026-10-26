@@ -1,3 +1,3 @@
 Files read by the P80h session:
-  ui        "openbox" (default) or "xfce" (if installed)
+  ui        unused (Openbox is the only session)
   gateway   PC address on usb0 for internet via share-net.sh (default 172.16.42.2)

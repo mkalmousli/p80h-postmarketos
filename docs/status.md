@@ -251,3 +251,9 @@ Hypothesis: a full-width bottom bar (label left, "%  ETA m:ss" right, eased fill
 fed by p80hd permille datagrams reads better than ring+label. Falsifier: bar not visible on the tablet during a deploy
 (only drawn where p80h-splash owns fb0: initramfs/rescue; under X it needs an X-side renderer). Host render check:
 glyph baseline bug in genfont.py found and fixed (tops were clipped). Next: desktop stack decision (no custom WM).
+
+## Desktop: xfce dropped, bar under X (run 154)
+Hypothesis: Openbox + tint2 + jgmenu is the small/fast stack (no custom WM); `p80h-splash --bar` (started from the Openbox
+autostart) draws only the bottom bar over X's fbdev scan-out and restores the covered pixels afterwards, so deploys show
+progress on the desktop too. Falsifier: the bar never appears during `p80h push` of a >= 1 MiB file, or X content under it
+stays corrupted afterwards (X not on fbdev: then it needs an X-side renderer).

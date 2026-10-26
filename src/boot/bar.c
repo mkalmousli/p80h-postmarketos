@@ -12,7 +12,8 @@
 #define ACC ((unsigned)acc[0] << 16 | (unsigned)acc[1] << 8 | (unsigned)acc[2])
 static char label[96];
 static float target = -1, shown, t0, tlast, appear, eta = -1;
-static int active;
+static int active, have;
+static unsigned snap[LW][BH];	/* what the bar covers, put back when it slides away (desktop mode) */
 
 static unsigned shade(unsigned c, float k) { return (unsigned)((c >> 16 & 255) * k) << 16 | (unsigned)((c >> 8 & 255) * k) << 8 | (unsigned)((c & 255) * k); }
 
@@ -43,10 +44,13 @@ int bar_draw(unsigned char *fb, int stride, float t)
 	tlast = t;
 	appear += (active ? dt : -dt) / 260;
 	appear = appear < 0 ? 0 : appear > 1 ? 1 : appear;
-	if (appear <= 0 && !active) return 0;
+	if (appear <= 0 && !active) return have = 0;
 	e = 1 - powf(1 - appear, 3);	/* ease-out slide */
 	y = LH - BH * e;
-	fill(fb, stride, 0, LH - BH, LW, (int)y, 0);	/* what the bar uncovered while sliding down */
+	if (!have && active)
+		for (int x = 0; x < LW; x++) memcpy(snap[x], (unsigned *)(fb + x * stride), sizeof(snap[x])), have = 1;
+	for (int x = 0; x < LW && have; x++)	/* what the bar uncovered while sliding down */
+		for (int i = LH - 1 - (int)y; i < BH; i++) ((unsigned *)(fb + x * stride))[i] = snap[x][i];
 	if (target >= 0) shown += (target - shown) * (1 - expf(-dt / 140));	/* smooth fill */
 	if (target > .03f && t - t0 > 1500) {	/* remaining = elapsed * (1 - done) / done, low-passed */
 		float now = (t - t0) / 1000 * (1 - target) / target;

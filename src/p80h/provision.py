@@ -4,6 +4,7 @@ src/tools/share-net.sh on the PC first (usbnet.start routes through it). Idempot
 from pathlib import Path
 
 from .channels.daemon import DaemonChannel
+from .image.daemon import BOOT_SRC, compile_charge
 from .touchfw import OUT as TOUCH_FW
 
 PORT = Path("src/port")
@@ -32,6 +33,7 @@ def provision() -> str:
     ch = DaemonChannel()
     log = [f"overlay: {push_overlay(ch)} files"]
     ch.sh("/etc/local.d/usbnet.start; mkdir -p /etc/p80h /lib/firmware/silead; rm -f /etc/local.d/openbox.start /root/.config/autostart/p80h-audio.desktop")
+    ch.put("/usr/local/bin/p80h-splash", compile_charge(Path("local/out/p80h-splash"), BOOT_SRC).read_bytes(), 0o755)  # --bar: progress bar over X
     ch.put("/lib/firmware/silead/gsl1680-teclast-p80h.fw", TOUCH_FW.read_bytes(), 0o644)
     need, optional = packages()
     out, rc = ch.run("apk update -q && apk add -q " + " ".join(need) + " 2>&1 | tail -20", timeout=3600)
@@ -42,5 +44,5 @@ def provision() -> str:
         ch.sh(f"[ -e /etc/init.d/{svc} ] && rc-update add {svc} {level} >/dev/null 2>&1")
     # postmarketOS ships mdev hotplug in the initramfs; udev owns it on the rootfs (libinput needs udev's db)
     ch.sh("rc-update del mdev sysinit >/dev/null 2>&1; udevadm hwdb --update 2>/dev/null; true")
-    log.append(ch.sh("ls -l /etc/local.d/session.start; command -v xfce4-session firefox nmcli bluetoothctl"))
+    log.append(ch.sh("ls -l /etc/local.d/session.start; command -v openbox firefox nmcli bluetoothctl"))
     return "\n".join(log)

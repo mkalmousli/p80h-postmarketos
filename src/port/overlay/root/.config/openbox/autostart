@@ -4,6 +4,7 @@
 /usr/local/bin/p80h-power &
 /usr/local/bin/p80h-rotate &
 xsetroot -solid '#1d2a38' &
+/usr/local/bin/p80h-splash --bar &
 tint2 &
 dunst &
 nm-applet &

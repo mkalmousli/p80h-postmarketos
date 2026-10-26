@@ -1,16 +1,12 @@
 #!/bin/sh
-# Desktop at boot, root, no display manager: Xorg + Openbox (starts in about a second). /etc/p80h/ui = openbox | xfce
-UI=$(cat /etc/p80h/ui 2>/dev/null || echo openbox)
+# Desktop at boot, root, no display manager: Xorg + Openbox (starts in about a second).
 export USER=root HOME=/root DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/0 MOZ_USE_XINPUT2=1
 mkdir -p -m 0700 $XDG_RUNTIME_DIR
 pkill -TERM p80h-splash; sleep 0.3  # fades out, frees the framebuffer for X
 (Xorg :0 -noreset -nolisten tcp vt7 -logfile /var/log/Xorg.0.log >/dev/null 2>&1; true) &
 i=0; while [ ! -e /tmp/.X11-unix/X0 ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
 chvt 7
-case "$UI" in
-xfce) setsid dbus-launch --exit-with-session xfce4-session >/var/log/session.log 2>&1 & ;;
-*) setsid dbus-launch --exit-with-session openbox-session >/var/log/session.log 2>&1 & ;;
-esac
+setsid dbus-launch --exit-with-session openbox-session >/var/log/session.log 2>&1 &
 # remote view for the PC: VNC of :0 for the USB link and SSH tunnels (-allow); no password, never open it to Wi-Fi directly
 (i=0; while ! xset -display :0 q >/dev/null 2>&1 && [ $i -lt 60 ]; do sleep 1; i=$((i + 1)); done
  x11vnc -display :0 -forever -shared -nopw -allow 172.16.42.2,127.0.0.1 -rfbport 5900 -bg -quiet -o /var/log/x11vnc.log) &

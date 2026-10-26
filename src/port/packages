@@ -67,4 +67,4 @@ pavucontrol
 upower
 iio-sensor-proxy
 python3
-network-manager-applet	# Wi-Fi/network tray GUI (xfce panel)
+network-manager-applet	# Wi-Fi/network tray GUI
