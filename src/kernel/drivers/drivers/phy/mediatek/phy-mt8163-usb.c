@@ -64,8 +64,34 @@ static int mt8163_usb_phy_power_on(struct phy *p)
 	return 0;
 }
 
+/*
+ * OTG role from the MUSB glue, as the stock musb_id_pin_work does it: the controller samples the forced UTMI state
+ * of U2PHYDTM1 (0x6c: SESSEND 4, VBUSVALID 5, BVALID 3, AVALID 2, IDDIG 1; force bits in 0x6d). For host it must
+ * see a session end with ID low first, then the session restarts as A-device. The real ID pin (GPIO38) is read by
+ * usb-conn-gpio, so the PHY's own IDDIG input is never used.
+ */
+static int mt8163_usb_phy_set_mode(struct phy *p, enum phy_mode mode, int submode)
+{
+	struct mt8163_phy *u = phy_get_drvdata(p);
+	u8 devctl = readb(u->musb + 0x60);
+
+	if (mode == PHY_MODE_USB_HOST) {
+		writeb(devctl & ~0x01, u->musb + 0x60);		/* session off */
+		mod8(u->phy, 0x6c, 0x10, 0x2e);			/* session end, ID low */
+		mod8(u->phy, 0x6d, 0x3e, 0);
+		msleep(55);
+		writeb(readb(u->musb + 0x60) | 0x01, u->musb + 0x60);
+		mod8(u->phy, 0x6c, 0x2c, 0x10);			/* valid, ID still low */
+	} else if (mode == PHY_MODE_USB_DEVICE) {
+		mod8(u->phy, 0x6c, 0x2e, 0x10);			/* valid, ID high */
+		mod8(u->phy, 0x6d, 0x3e, 0);
+	}
+	return 0;
+}
+
 static const struct phy_ops mt8163_usb_phy_ops = {
 	.power_on = mt8163_usb_phy_power_on,
+	.set_mode = mt8163_usb_phy_set_mode,
 	.owner = THIS_MODULE,
 };
 

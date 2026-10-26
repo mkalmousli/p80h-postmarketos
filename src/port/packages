@@ -1,0 +1,70 @@
+# Alpine packages for the P80h desktop, installed by `p80h provision` (apk add). '?' = optional, skipped if the
+# repo lacks it. One per line.
+# base: udev for libinput hotplug, dbus, polkit-less root session
+eudev
+dbus
+dbus-x11
+e2fsprogs-extra
+chrony
+# X + desktop: Openbox (instant start) + tint2 panel/launchers + jgmenu app menu, tray applets for the GUI bits
+xorg-server
+xf86-input-libinput
+xinput
+xrandr
+mesa-dri-gallium
+openbox
+tint2
+jgmenu
+pcmanfm
+lxterminal
+dunst
+feh
+xsetroot
+libnotify
+pasystray
+gvfs
+udisks2
+adwaita-icon-theme
+papirus-icon-theme
+font-dejavu
+font-noto
+?onboard
+?matchbox-keyboard
+# apps
+firefox
+mousepad
+galculator
+mpv
+htop
+nano
+# curated light tools, one per job (each ships its own .desktop, so the jgmenu app menu lists it): PDF viewer,
+# image viewer, archives, screenshots, music player, small browser
+?mupdf
+?gpicview
+?xarchiver
+?scrot
+?audacious
+?netsurf
+# system GUIs behind the Settings entries (Wi-Fi, Bluetooth, Volume, Display, Appearance, Task Manager)
+?arandr
+?lxappearance
+# network / bluetooth
+networkmanager
+networkmanager-wifi
+networkmanager-cli
+network-manager-applet
+wpa_supplicant
+bluez
+blueman
+# audio
+alsa-utils
+pipewire
+pipewire-alsa
+pipewire-pulse
+wireplumber
+pavucontrol
+# power / sensors
+upower
+iio-sensor-proxy
+python3
+network-manager-applet	# Wi-Fi/network tray GUI (xfce panel)

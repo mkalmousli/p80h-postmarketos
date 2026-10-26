@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
 #include <dt-bindings/interrupt-controller/irq.h>
 #include "mt8163.dtsi"
 
@@ -8,21 +9,18 @@
 	model = "Teclast P80h";
 	compatible = "teclast,p80h", "mediatek,mt8163";
 
+	/* eMMC is mmcblk0 whatever probes first (the SD host does now; tools and the stock layout expect mmcblk0) */
+	aliases {
+		mmc0 = &mmc0;
+		mmc1 = &mmc1;
+	};
+
 	chosen {
 		bootargs = "console=tty0 clk_ignore_unused pd_ignore_unused panic=10 initcall_debug ignore_loglevel";
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
 
-		/* the panel is already lit by the bootloader (LK), keep scanning out its buffer */
-		framebuffer@7ec00000 {
-			compatible = "simple-framebuffer";
-			reg = <0 0x7ec00000 0 0x3e8000>;
-			width = <800>;
-			height = <1280>;
-			stride = <3200>;
-			format = "a8r8g8b8";
-		};
 	};
 
 	memory@40000000 {
@@ -36,6 +34,8 @@
 		ranges;
 
 		atf@43000000 { reg = <0 0x43000000 0 0x30000>; no-map; };
+		/* CONSYS firmware + EMI share memory (stock consys-reserve-memory: 2 MB, 2 MB aligned) */
+		consys_mem: consys@7e000000 { reg = <0 0x7e000000 0 0x200000>; no-map; };
 		/* the stock ram_console window: LK keeps it across watchdog resets, so pstore survives a crashed boot */
 		ramoops@43f00000 {
 			compatible = "ramoops";
@@ -84,6 +84,28 @@
 };
 
 &pio {
+	pwm_pins: pwm {
+		pins {
+			pinmux = <0x3b01>;	/* GPIO59 = DISP_PWM */
+		};
+	};
+	keypad_pins: keypad {
+		pins-row {
+			pinmux = <0x2101>;	/* GPIO33 = KPROW0 (driven by the scanner) */
+		};
+		pins-col {
+			pinmux = <0x2401>;	/* GPIO36 = KPCOL0 */
+			input-enable;
+			bias-pull-up;
+		};
+	};
+	touch_pins: touch {
+		pins-int {
+			pinmux = <0x1d00>;	/* GPIO29, GPIO mode */
+			input-enable;
+			bias-pull-up;
+		};
+	};
 	i2c1_pins: i2c1 {
 		pins {
 			pinmux = <0x3901>, <0x3a01>;	/* GPIO57/58 = SDA1/SCL1 */
@@ -172,6 +194,7 @@
 		reset-gpios = <&pio 19 GPIO_ACTIVE_LOW>;
 		vcc-supply = <&panel_vcc>;
 		iovcc-supply = <&panel_iovcc>;
+		backlight = <&backlight>;	/* DPMS off / blanking also switches the backlight off */
 
 		port {
 			panel_in: endpoint {
@@ -185,6 +208,33 @@
 			remote-endpoint = <&panel_in>;
 		};
 	};
+};
+
+&disp_pwm0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm_pins>;
+	status = "okay";
+};
+
+/ {
+	backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&disp_pwm0 0 50000>;
+		brightness-levels = <0 255>;
+		num-interpolated-steps = <256>;
+		default-brightness-level = <40>;	/* dim by default: charging and reading in the dark */
+	};
+};
+
+/* Volume up = matrix code 0 (stock kpd_keymap[0] = KEY_VOLUMEUP); LK runs the 3x3 matrix (KP_SEL 0x1c70) */
+&keypad {
+	pinctrl-names = "default";
+	pinctrl-0 = <&keypad_pins>;
+	keypad,num-rows = <3>;
+	keypad,num-columns = <3>;
+	debounce-delay-ms = <32>;
+	linux,keymap = <MATRIX_KEY(0, 0, KEY_VOLUMEUP)>;
+	status = "okay";
 };
 
 &mmc0 {
@@ -207,15 +257,28 @@
 	clock-frequency = <400000>;
 	status = "okay";
 
-	/* Silead GSLx68x; INT = GPIO35, RST = GPIO46, rail VGP2 (left on by the bootloader, no PMIC driver yet) */
+	/*
+	 * Silead GSLx68x. Stock DT TOUCH_PANEL eint 7 falling, ITEMS defaults touchpanel.eint.pin 29 /
+	 * reset.pin 45 (GPIO29 is EINT7); stock tpd_i2c_probe: RST low, VGP2 3.3 V, 100 ms, RST high,
+	 * INT input pull-up, then mt_eint_registration.
+	 */
 	touchscreen@40 {
 		compatible = "silead,gsl1680";
 		reg = <0x40>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&touch_pins>;
 		interrupt-parent = <&pio>;
-		interrupts = <35 IRQ_TYPE_EDGE_FALLING>;
-		power-gpios = <&pio 46 GPIO_ACTIVE_HIGH>;
-		touchscreen-size-x = <800>;
-		touchscreen-size-y = <1280>;
+		interrupts = <7 IRQ_TYPE_EDGE_FALLING>;
+		power-gpios = <&pio 45 GPIO_ACTIVE_HIGH>;
+		/*
+		 * The controller reports in its own landscape frame, about 1600 x 900 (measured, run 106:
+		 * x 6..1591, y 13..892). Top-left of the portrait screen is raw (max, 0), bottom-right raw
+		 * (0, max): invert raw X, then swap.
+		 */
+		touchscreen-size-x = <1600>;
+		touchscreen-size-y = <900>;
+		touchscreen-inverted-x;
+		touchscreen-swapped-x-y;
 		firmware-name = "gsl1680-teclast-p80h.fw";
 		vddio-supply = <&mt6323_vgp2_reg>;
 		avdd-supply = <&mt6323_vgp2_reg>;
@@ -228,15 +291,47 @@
 	 * bq2415x detects from PN=0 at 0x6a. Limits from the stock register dump
 	 * ([fan5405] 00=d0 01=78 02=8e 03=41 04=84 05=03 06=70), Rsense 68 mOhm per datasheet.
 	 */
-	charger@6a {
+	charger: charger@6a {
 		compatible = "ti,bq24156";
 		reg = <0x6a>;
-		ti,current-limit = <500>;
+		ti,current-limit = <800>;	/* FAN5405 input limit: 100/500/800/none */
 		ti,weak-battery-voltage = <3700>;
 		ti,battery-regulation-voltage = <4200>;
-		ti,charge-current = <550>;
+		ti,charge-current = <1000>;	/* fast charge, 68 mohm sense */
 		ti,termination-current = <250>;
 		ti,resistor-sense = <68>;
+
+		/* OTG VBUS = FAN5405 boost (stock mt_usb_set_vbus -> tbl_charger_otg_vbus: OPA_MODE) */
+		otg_vbus: usb-otg-vbus {
+			regulator-name = "usb-otg-vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+		};
+	};
+};
+
+/*
+ * Battery: 3000 mAh (stock Q_MAX, all temperatures), OCV profile from the stock fuel gauge (`p80h re battery`;
+ * the stock kernel uses the same table at every temperature). Voltage from the MT6323 AUXADC BATSNS channel.
+ */
+/ {
+	bat: battery {
+		compatible = "simple-battery";
+		device-chemistry = "lithium-ion";
+		charge-full-design-microamp-hours = <3000000>;
+		voltage-min-design-microvolt = <3500000>;
+		voltage-max-design-microvolt = <4200000>;
+		ocv-capacity-celsius = <25>;
+		ocv-capacity-table-0 = <4320000 100 4190000 95 4102000 90 4052000 85 4014000 80 3980000 75 3946000 70
+					3917000 65 3889000 60 3874000 55 3861000 50 3848000 45 3837000 40 3823000 35
+					3811000 30 3800000 25 3786000 20 3765000 15 3729000 10 3665000 5 3571000 0>;
+	};
+
+	fuel-gauge {
+		compatible = "mediatek,mt6323-battery";
+		mediatek,pmic = <&pmic>;
+		monitored-battery = <&bat>;
+		power-supplies = <&charger>;
 	};
 };
 
@@ -265,7 +360,7 @@
 	bus-width = <4>;
 	max-frequency = <50000000>;
 	cap-sd-highspeed;
-	/* ITEMS sd.dete.pin = 28, sd.dete.enit.num = 6 (GPIO28 is EINT6); douglas used 49. Polarity not yet confirmed */
+	/* ITEMS sd.dete.pin = 28, sd.dete.enit.num = 6 (GPIO28 is EINT6). Polarity not yet confirmed */
 	cd-gpios = <&pio 28 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default", "state_uhs";
 	pinctrl-0 = <&mmc1_pins>;
@@ -273,4 +368,100 @@
 	no-mmc;
 	no-sdio;
 	status = "okay";
+};
+
+/*
+ * Audio: AFE ADDA link to the MT6323 codec over AUD_CLK/AUD_MISO/AUD_MOSI (stock DT audclk/audmiso/audmosi-gpio
+ * 7/8/9, set to mode 1 by the stock EnableAfe). Internal class-D speaker (stock Speaker_ClassD_Open, the
+ * extspkamp GPIO117 is not used on this board), headphone amp and the analog mic on ADC1/ADC2 (ACC mode).
+ */
+&pio {
+	aud_pins: aud {
+		pins {
+			pinmux = <0x0701>, <0x0801>, <0x0901>;	/* GPIO7/8/9 = AUD_CLK_MOSI / AUD_DAT_MISO / AUD_DAT_MOSI */
+		};
+	};
+};
+
+&afe {
+	pinctrl-names = "default";
+	pinctrl-0 = <&aud_pins>;
+	status = "okay";
+};
+
+/ {
+	mt6323_codec: audio-codec {
+		compatible = "mediatek,mt6323-codec";
+		mediatek,pmic = <&pmic>;
+		#sound-dai-cells = <0>;
+	};
+
+	/* external speaker amp fed from the MT6323 HP outputs (stock plays the speaker through the HP amp),
+	 * enable = GPIO117 (stock DT extspkamp-gpio, Ext_Speaker_Amp_Set) */
+	speaker_amp: audio-amplifier {
+		compatible = "simple-audio-amplifier";
+		enable-gpios = <&pio 117 GPIO_ACTIVE_HIGH>;
+		sound-name-prefix = "Ext Amp";
+	};
+
+	sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "P80h";
+		simple-audio-card,widgets = "Speaker", "Speaker", "Headphone", "Headphones", "Microphone", "Mic";
+		simple-audio-card,routing = "Ext Amp INL", "HP", "Ext Amp INR", "HP",
+					    "Speaker", "Ext Amp OUTL", "Speaker", "Ext Amp OUTR",
+					    "Headphones", "HP", "MIC", "Mic";
+		simple-audio-card,pin-switches = "Speaker", "Headphones";
+		simple-audio-card,aux-devs = <&speaker_amp>;
+
+		simple-audio-card,cpu {
+			sound-dai = <&afe>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&mt6323_codec>;
+		};
+	};
+};
+
+&consys {
+	memory-region = <&consys_mem>;
+	vcn18-supply = <&mt6323_vcn18_reg>;
+	vcn28-supply = <&mt6323_vcn28_reg>;
+	vcn33_bt-supply = <&mt6323_vcn33_bt_reg>;
+	vcn33_wifi-supply = <&mt6323_vcn33_wifi_reg>;
+	mediatek,pwrap-regmap = <&pwrap>;
+	status = "okay";
+};
+
+&wifi {
+	status = "okay";
+};
+
+/*
+ * USB OTG: ID on GPIO38 (KPCOL2 pad, EINT 49; stock mt_usb_otg_init: GPIO input, pull-up, iddig_gpio in the stock DT),
+ * VBUS from the charger's boost. ID floating high = device role, so the PC link keeps working with a normal cable.
+ */
+&pio {
+	usb_id_pins: usb-id {
+		pins-id {
+			pinmux = <0x2600>;	/* GPIO38, GPIO mode */
+			input-enable;
+			bias-pull-up;
+		};
+	};
+};
+
+&usb {
+	dr_mode = "otg";
+	usb-role-switch;
+	pinctrl-names = "default";
+	pinctrl-0 = <&usb_id_pins>;
+
+	connector {
+		compatible = "gpio-usb-b-connector", "usb-b-connector";
+		label = "micro-USB";
+		type = "micro";
+		id-gpios = <&pio 38 GPIO_ACTIVE_HIGH>;
+		vbus-supply = <&otg_vbus>;
+	};
 };

@@ -1,0 +1,5 @@
+#!/bin/sh
+# first boot of a flashed root-desktop.img: grow ext4 (built to its content size) to the whole partition, once
+[ -e /etc/p80h/resized ] && exit 0
+resize2fs "$(awk '$2 == "/" {print $1}' /proc/mounts | tail -1)" >/dev/null 2>&1 && touch /etc/p80h/resized
+true

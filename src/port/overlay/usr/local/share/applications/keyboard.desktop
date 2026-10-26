@@ -1,5 +1,5 @@
 [Desktop Entry]
 Type=Application
 Name=Keyboard
-Exec=matchbox-keyboard
+Exec=/usr/local/bin/p80h-keyboard
 Icon=input-keyboard

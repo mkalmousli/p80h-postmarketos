@@ -10,6 +10,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/reboot.h>
 #include <linux/reboot-mode.h>
 #include <linux/regmap.h>
 
@@ -51,6 +52,32 @@ static int p80h_reboot_mode_write(struct reboot_mode_driver *rm, unsigned int ma
 	return 0;
 }
 
+/*
+ * Power off as the stock hal_rtc_bbpu_pwdn(): unlock the RTC writes (mainline mt6323-poweroff skips this, so the
+ * PMIC ignores it and the system hangs), set bit 5 of 0x803e when no boot mode is pending in PDN1, then
+ * BBPU = KEY | 0x9 and commit. With a charger attached the PMIC stays up (stock then reboots into charge mode):
+ * return and let the next handler / the caller deal with it.
+ */
+static int p80h_power_off(struct sys_off_data *data)
+{
+	struct regmap *map = data->cb_data;
+	unsigned int pdn1 = 0;
+
+	regmap_write(map, RTC_PROT, 0x586a);
+	rtc_commit(map);
+	regmap_write(map, RTC_PROT, 0x9136);
+	rtc_commit(map);
+	regmap_read(map, RTC_PDN1, &pdn1);
+	if (!(pdn1 & 0x1f00)) {
+		regmap_update_bits(map, 0x803e, BIT(5), BIT(5));
+		rtc_commit(map);
+	}
+	regmap_write(map, RTC_BBPU, 0x4309);
+	rtc_commit(map);
+	mdelay(1500);
+	return NOTIFY_DONE;
+}
+
 static int p80h_reboot_mode_probe(struct platform_device *pdev)
 {
 	struct p80h_reboot_mode *p;
@@ -71,6 +98,7 @@ static int p80h_reboot_mode_probe(struct platform_device *pdev)
 	put_device(&pmic->dev);
 	if (!p->map)
 		return -EPROBE_DEFER;
+	devm_register_sys_off_handler(&pdev->dev, SYS_OFF_MODE_POWER_OFF, SYS_OFF_PRIO_HIGH, p80h_power_off, p->map);
 	p->rm.dev = &pdev->dev;
 	p->rm.write = p80h_reboot_mode_write;
 	return devm_reboot_mode_register(&pdev->dev, &p->rm);

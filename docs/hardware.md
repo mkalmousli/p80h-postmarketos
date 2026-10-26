@@ -12,13 +12,13 @@ Collected over `adb` from the stock firmware (`alps/full_joyasz8163_s_es`, MT816
 | Accelerometer | MIR3DA (`m_acc_input`) |
 | Keys | `mtk-kpd`, `mtk-tpd-kpd` |
 | Wi-Fi / BT | MediaTek combo chip over CONSYS (`mediatek.wlan.chip=CONSYS_MT8163`), firmware dir `mt6627` |
-| GPU | Mali (`libGLES_mali.so`, `gralloc.mt8163.mali.so`), vendor blobs only |
+| GPU | MediaTek "Sapphire Lite" (`yolig3d`, ID 0x02075017 at 0x13000020), not Mali despite the stock lib names; no open driver, software rendering |
 | Firmware files | `/system/etc/firmware`: `ROMv2_lm_patch_1_{0,1}_hdr.bin`, `WIFI_RAM_CODE_8163`, `WMT_SOC.cfg`, `md32_{d,p}.bin`, `mt6627/` |
 
 Raw dumps live outside the repo (device-specific, may contain identifiers).
 
 ## Ground truth from the stock binaries (`p80h re i2c`, `p80h re items`)
-Board data the stock 3.10 kernel actually uses, taken from the stock `boot.bin` kernel (symbols recovered with vmlinux-to-elf) and the `ITEMS` partition (runtime board config read by `item_integer()` / `items_*_get_cust_acc_hw`). This wins over douglas.dts, which is a different board.
+Board data the stock 3.10 kernel actually uses, taken from the stock `boot.bin` kernel (symbols recovered with vmlinux-to-elf) and the `ITEMS` partition (runtime board config read by `item_integer()` / `items_*_get_cust_acc_hw`).
 
 | Device | Bus / addr | Evidence |
 |---|---|---|

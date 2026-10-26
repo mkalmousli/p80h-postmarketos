@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Disks
+Exec=pcmanfm computer:///
+Icon=drive-harddisk
+Categories=Settings;

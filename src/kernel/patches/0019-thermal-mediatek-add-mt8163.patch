@@ -1,0 +1,127 @@
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index 9ee2e7283..74c5e7224 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -184,6 +184,15 @@ enum mtk_thermal_version {
+ 	MTK_THERMAL_V3,
+ };
+ 
++/*
++ * MT8163 (stock mtk_ts_cpu): AUXADC channel 11, slope constant 165, efuse layout V1 handed over by LK in
++ * /chosen atag,devinfo (words 7..9). Stock reads TS1/TS2 in bank 0 and TS3/ABB in bank 1; the ABB VTS word is
++ * blank on the P80h, so one bank reads TS1..TS3 (mux 0, 1, 2).
++ */
++#define MT8163_NUM_SENSORS		3
++#define MT8163_NUM_SENSORS_PER_ZONE	3
++#define MT8163_NUM_CONTROLLER		1
++
+ /* MT2701 thermal sensors */
+ #define MT2701_TS1	0
+ #define MT2701_TS2	1
+@@ -414,6 +423,9 @@ static const int mt2701_vts_index[MT2701_NUM_SENSORS] = {
+ 	VTS1, VTS2, VTS3
+ };
+ 
++static const int mt8163_bank_data[MT8163_NUM_SENSORS] = { 0, 1, 2 };
++static const int mt8163_mux_values[MT8163_NUM_SENSORS] = { 0, 1, 2 };
++
+ /* MT2712 thermal sensor data */
+ static const int mt2712_bank_data[MT2712_NUM_SENSORS] = {
+ 	MT2712_TS1, MT2712_TS2, MT2712_TS3, MT2712_TS4
+@@ -521,6 +533,30 @@ static const struct mtk_thermal_data mt8173_thermal_data = {
+  * Voltage Scaling) unit makes its decisions based on the same bank
+  * data.
+  */
++static const struct mtk_thermal_data mt8163_thermal_data = {
++	.auxadc_channel = MT2701_TEMP_AUXADC_CHANNEL,
++	.num_banks = 1,
++	.num_sensors = MT8163_NUM_SENSORS,
++	.vts_index = mt2701_vts_index,
++	.cali_val = MT2701_CALIBRATION,
++	.num_controller = MT8163_NUM_CONTROLLER,
++	.controller_offset = mt2701_tc_offset,
++	.need_switch_bank = true,
++	.bank_data = {
++		{
++			.num_sensors = MT8163_NUM_SENSORS,
++			.sensors = mt8163_bank_data,
++		},
++	},
++	.msr = mt2701_msr,
++	.adcpnp = mt2701_adcpnp,
++	.sensor_mux_values = mt8163_mux_values,
++	.version = MTK_THERMAL_V1,
++	.apmixed_buffer_ctl_reg = APMIXED_SYS_TS_CON1,
++	.apmixed_buffer_ctl_mask = (u32)~0x30,
++	.apmixed_buffer_ctl_set = 0,
++};
++
+ static const struct mtk_thermal_data mt2701_thermal_data = {
+ 	.auxadc_channel = MT2701_TEMP_AUXADC_CHANNEL,
+ 	.num_banks = 1,
+@@ -1070,6 +1106,27 @@ static int mtk_thermal_extract_efuse_v3(struct mtk_thermal *mt, u32 *buf)
+ 	return 0;
+ }
+ 
++/* LK passes the efuse shadow as /chosen atag,devinfo: 2 header words, then get_devinfo_with_index() data (LE) */
++static u32 *mtk_thermal_devinfo_calibration(size_t *len)
++{
++	struct device_node *np = of_find_node_by_path("/chosen");
++	const __le32 *p;
++	int n = 0, i;
++	u32 *buf;
++
++	p = of_get_property(np, "atag,devinfo", &n);
++	of_node_put(np);
++	if (!p || n < 12 * 4)
++		return ERR_PTR(-ENOENT);
++	buf = kmalloc_array(3, sizeof(u32), GFP_KERNEL);
++	if (!buf)
++		return ERR_PTR(-ENOMEM);
++	for (i = 0; i < 3; i++)
++		buf[i] = le32_to_cpu(p[2 + 7 + i]);
++	*len = 3 * sizeof(u32);
++	return buf;
++}
++
+ static int mtk_thermal_get_calibration_data(struct device *dev,
+ 					    struct mtk_thermal *mt)
+ {
+@@ -1090,16 +1147,18 @@ static int mtk_thermal_get_calibration_data(struct device *dev,
+ 	if (IS_ERR(cell)) {
+ 		if (PTR_ERR(cell) == -EPROBE_DEFER)
+ 			return PTR_ERR(cell);
+-		return 0;
++		if (!of_device_is_compatible(dev->of_node, "mediatek,mt8163-thermal"))
++			return 0;
++		buf = mtk_thermal_devinfo_calibration(&len);
++		if (IS_ERR(buf))
++			return 0;
++	} else {
++		buf = (u32 *)nvmem_cell_read(cell, &len);
++		nvmem_cell_put(cell);
++		if (IS_ERR(buf))
++			return PTR_ERR(buf);
+ 	}
+ 
+-	buf = (u32 *)nvmem_cell_read(cell, &len);
+-
+-	nvmem_cell_put(cell);
+-
+-	if (IS_ERR(buf))
+-		return PTR_ERR(buf);
+-
+ 	if (len < 3 * sizeof(u32)) {
+ 		dev_warn(dev, "invalid calibration data\n");
+ 		ret = -EINVAL;
+@@ -1137,6 +1196,10 @@ static const struct of_device_id mtk_thermal_of_match[] = {
+ 		.compatible = "mediatek,mt8173-thermal",
+ 		.data = (void *)&mt8173_thermal_data,
+ 	},
++	{
++		.compatible = "mediatek,mt8163-thermal",
++		.data = (void *)&mt8163_thermal_data,
++	},
+ 	{
+ 		.compatible = "mediatek,mt2701-thermal",
+ 		.data = (void *)&mt2701_thermal_data,

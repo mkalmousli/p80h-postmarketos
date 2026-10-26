@@ -1,0 +1,8 @@
+#!/bin/sh
+# p80h deploy writes the marker before test-booting a kernel from recovery. Unless deploy confirms the candidate
+# (/run/p80h-confirmed) within 10 minutes, reboot: LK's recovery boot is one-shot, so this lands on the known-good
+# boot image even when the candidate broke the Wi-Fi link that deploy talks over.
+M=/var/lib/p80h/candidate
+[ -e $M ] || exit 0
+rm -f $M; sync
+(sleep 600; [ -e /run/p80h-confirmed ] || { echo "p80h: candidate kernel not confirmed, rebooting" > /dev/kmsg; reboot; }) &

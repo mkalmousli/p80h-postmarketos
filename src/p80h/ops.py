@@ -24,7 +24,11 @@ class DaemonOps:
         return "/dev/" + self.sh(cmd).split("/")[4]
 
     def flash(self, name: str, data: bytes) -> None:
-        """Write a partition through the daemon and verify with a sha256 of the written range."""
+        """Write a partition through the daemon and verify with a sha256 of the written range.
+        boot/recovery only take images that passed `p80h deploy`: the tablet must always boot to the daemon."""
+        from .deploy import verified
+        if name in ("boot", "recovery") and not verified(data):
+            raise SystemExit(f"refusing to write an unverified image to {name}: use `p80h deploy IMAGE`")
         node = self.partition(name)
         self.put(node, data)
         want = hashlib.sha256(data).hexdigest()

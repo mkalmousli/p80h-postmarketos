@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Apps
+Exec=jgmenu_run
+Icon=view-app-grid-symbolic

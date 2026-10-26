@@ -2,7 +2,7 @@
 """Backlight control: p80h-bright [up|down|0-255]."""
 import sys
 
-NODE = "/sys/class/leds/lcd-backlight/brightness"
+NODE = "/sys/class/backlight/backlight/brightness"
 cur = int(open(NODE).read())
 arg = sys.argv[1] if len(sys.argv) > 1 else ""
 new = min(255, cur + 32) if arg == "up" else max(8, cur - 32) if arg == "down" else int(arg or cur)

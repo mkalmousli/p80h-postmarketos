@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Display
+Exec=arandr
+Icon=preferences-desktop-display
+Categories=Settings;

@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Task Manager
+Exec=lxterminal -e htop
+Icon=utilities-system-monitor
+Categories=Settings;

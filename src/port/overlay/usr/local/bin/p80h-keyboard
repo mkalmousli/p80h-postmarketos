@@ -1,0 +1,7 @@
+#!/bin/sh
+# toggle the on-screen keyboard: onboard (docked, auto-show off) or matchbox-keyboard as fallback
+if command -v onboard >/dev/null; then
+	pkill -x onboard || exec onboard
+else
+	pkill -x matchbox-keyboard || exec matchbox-keyboard
+fi

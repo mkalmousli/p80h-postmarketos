@@ -1,0 +1,9 @@
+# touch-sized app menu (all .desktop apps), opened from the panel's Apps button or a desktop right-click
+csv_cmd = apps
+position_mode = pointer
+menu_width = 420
+item_height = 52
+font = DejaVu Sans 15
+icon_size = 36
+icon_theme = Papirus
+menu_padding_top = 8

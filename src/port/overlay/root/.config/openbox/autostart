@@ -1,0 +1,11 @@
+# Openbox session (root). Order: input + audio first, then the panel and tray applets.
+/usr/local/bin/p80h-touch &
+/usr/libexec/pipewire-launcher &
+/usr/local/bin/p80h-power &
+/usr/local/bin/p80h-rotate &
+xsetroot -solid '#1d2a38' &
+tint2 &
+dunst &
+nm-applet &
+blueman-applet &
+(sleep 2; pasystray) &

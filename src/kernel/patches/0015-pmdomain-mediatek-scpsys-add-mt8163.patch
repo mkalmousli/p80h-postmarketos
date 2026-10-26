@@ -1,0 +1,106 @@
+--- a/drivers/pmdomain/mediatek/mtk-scpsys.c
++++ b/drivers/pmdomain/mediatek/mtk-scpsys.c
+@@ -14,6 +14,7 @@
+ #include <linux/soc/mediatek/infracfg.h>
+ 
+ #include <dt-bindings/power/mt2701-power.h>
++#include <dt-bindings/power/mt8163-power.h>
+ #include <dt-bindings/power/mt2712-power.h>
+ #include <dt-bindings/power/mt6797-power.h>
+ #include <dt-bindings/power/mt7622-power.h>
+@@ -552,6 +553,68 @@
+  * MT2701 power domain support
+  */
+ 
++/*
++ * MT8163, from the vendor mtk-scpsys-mt8163.c / mt_spm.h (same SPM register map as MT8173; bus protection by
++ * update-bits on INFRA_TOPAXI_PROTECTEN as MT2701). Only the domains this port uses or must keep.
++ */
++#define SPM_MFG_ASYNC_PWR_CON_MT8163	0x02c4
++#define PWR_STATUS_MFG_ASYNC_MT8163	BIT(23)
++#define MT8163_TOP_AXI_PROT_EN_MM_M0		BIT(1)
++#define MT8163_TOP_AXI_PROT_EN_CCI_M2		BIT(13)
++#define MT8163_TOP_AXI_PROT_EN_CONN2EMI		BIT(14)
++#define MT8163_TOP_AXI_PROT_EN_CONN2PERI	BIT(15)
++#define MT8163_TOP_AXI_PROT_EN_MFG_M0		BIT(21)
++#define MT8163_TOP_AXI_PROT_EN_MFG_SNOOP_OUT	BIT(23)
++
++static const struct scp_domain_data scp_domain_data_mt8163[] = {
++	[MT8163_POWER_DOMAIN_VDEC] = {
++		.name = "vdec", .sta_mask = PWR_STATUS_VDEC, .ctl_offs = SPM_VDE_PWR_CON,
++		.sram_pdn_bits = GENMASK(11, 8), .sram_pdn_ack_bits = GENMASK(12, 12),
++		.clk_id = {CLK_MM}, .caps = MTK_SCPD_ACTIVE_WAKEUP,
++	},
++	[MT8163_POWER_DOMAIN_VENC] = {
++		.name = "venc", .sta_mask = PWR_STATUS_VENC, .ctl_offs = SPM_VEN_PWR_CON,
++		.sram_pdn_bits = GENMASK(11, 8), .sram_pdn_ack_bits = GENMASK(15, 12),
++		.clk_id = {CLK_MM}, .caps = MTK_SCPD_ACTIVE_WAKEUP,
++	},
++	[MT8163_POWER_DOMAIN_ISP] = {
++		.name = "isp", .sta_mask = PWR_STATUS_ISP, .ctl_offs = SPM_ISP_PWR_CON,
++		.sram_pdn_bits = GENMASK(11, 8), .sram_pdn_ack_bits = GENMASK(13, 12),
++		.clk_id = {CLK_MM}, .caps = MTK_SCPD_ACTIVE_WAKEUP,
++	},
++	[MT8163_POWER_DOMAIN_DISP] = {
++		.name = "mm", .sta_mask = PWR_STATUS_DISP, .ctl_offs = SPM_DIS_PWR_CON,
++		.sram_pdn_bits = GENMASK(11, 8), .sram_pdn_ack_bits = GENMASK(12, 12),
++		.clk_id = {CLK_MM}, .bus_prot_mask = MT8163_TOP_AXI_PROT_EN_MM_M0,
++		.caps = MTK_SCPD_ACTIVE_WAKEUP,
++	},
++	[MT8163_POWER_DOMAIN_AUDIO] = {
++		.name = "audio", .sta_mask = PWR_STATUS_AUDIO, .ctl_offs = SPM_AUDIO_PWR_CON,
++		.sram_pdn_bits = GENMASK(11, 8), .sram_pdn_ack_bits = GENMASK(15, 12),
++		.clk_id = {CLK_NONE}, .caps = MTK_SCPD_ACTIVE_WAKEUP,
++	},
++	[MT8163_POWER_DOMAIN_MFG_ASYNC] = {
++		.name = "mfg_async", .sta_mask = PWR_STATUS_MFG_ASYNC_MT8163, .ctl_offs = SPM_MFG_ASYNC_PWR_CON_MT8163,
++		.sram_pdn_bits = GENMASK(11, 8), .sram_pdn_ack_bits = 0,
++		.clk_id = {CLK_NONE},
++		.bus_prot_mask = MT8163_TOP_AXI_PROT_EN_MFG_M0 | MT8163_TOP_AXI_PROT_EN_MFG_SNOOP_OUT,
++		.caps = MTK_SCPD_ACTIVE_WAKEUP,
++	},
++	[MT8163_POWER_DOMAIN_MFG] = {
++		.name = "mfg", .sta_mask = PWR_STATUS_MFG, .ctl_offs = SPM_MFG_PWR_CON,
++		.sram_pdn_bits = GENMASK(13, 8), .sram_pdn_ack_bits = GENMASK(16, 16),
++		.clk_id = {CLK_MFG}, .caps = MTK_SCPD_ACTIVE_WAKEUP,
++	},
++	[MT8163_POWER_DOMAIN_CONN] = {
++		.name = "conn", .sta_mask = PWR_STATUS_CONN, .ctl_offs = SPM_CONN_PWR_CON,
++		.sram_pdn_bits = GENMASK(8, 8), .sram_pdn_ack_bits = 0,
++		.clk_id = {CLK_NONE},
++		.bus_prot_mask = MT8163_TOP_AXI_PROT_EN_CCI_M2 | MT8163_TOP_AXI_PROT_EN_CONN2EMI |
++				 MT8163_TOP_AXI_PROT_EN_CONN2PERI,
++		.caps = MTK_SCPD_ACTIVE_WAKEUP,
++	},
++};
++
+ static const struct scp_domain_data scp_domain_data_mt2701[] = {
+ 	[MT2701_POWER_DOMAIN_CONN] = {
+ 		.name = "conn",
+@@ -1009,6 +1072,16 @@
+ 	{MT8173_POWER_DOMAIN_MFG_2D, MT8173_POWER_DOMAIN_MFG},
+ };
+ 
++static const struct scp_soc_data mt8163_data = {
++	.domains = scp_domain_data_mt8163,
++	.num_domains = ARRAY_SIZE(scp_domain_data_mt8163),
++	.regs = {
++		.pwr_sta_offs = SPM_PWR_STATUS,
++		.pwr_sta2nd_offs = SPM_PWR_STATUS_2ND
++	},
++	.bus_prot_reg_update = true,
++};
++
+ static const struct scp_soc_data mt2701_data = {
+ 	.domains = scp_domain_data_mt2701,
+ 	.num_domains = ARRAY_SIZE(scp_domain_data_mt2701),
+@@ -1084,6 +1157,9 @@
+ 		.compatible = "mediatek,mt2701-scpsys",
+ 		.data = &mt2701_data,
+ 	}, {
++		.compatible = "mediatek,mt8163-scpsys",
++		.data = &mt8163_data,
++	}, {
+ 		.compatible = "mediatek,mt2712-scpsys",
+ 		.data = &mt2712_data,
+ 	}, {

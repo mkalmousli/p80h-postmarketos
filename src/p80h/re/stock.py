@@ -40,3 +40,7 @@ def symbols() -> dict[str, int]:
 
 def read(img: bytes, va: int, n: int) -> bytes:
     return img[va - BASE:va - BASE + n]
+
+
+def bss_end() -> int:
+    return symbols().get("_end", BASE + len(image()) + 0x400000)

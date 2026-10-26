@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Auto-rotate
+Exec=/usr/local/bin/p80h-rotate
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

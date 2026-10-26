@@ -1,5 +1,5 @@
 [Desktop Entry]
 Type=Application
 Name=Wi-Fi
-Exec=xterm -fa Monospace -fs 14 -e nmtui
+Exec=nm-connection-editor
 Icon=network-wireless

@@ -1,0 +1,30 @@
+diff --git a/drivers/power/supply/Kconfig b/drivers/power/supply/Kconfig
+index bcfa63fb9..7d5d080fb 100644
+--- a/drivers/power/supply/Kconfig
++++ b/drivers/power/supply/Kconfig
+@@ -115,6 +115,13 @@ config BATTERY_CPCAP
+ 	  Say Y here to enable support for battery on Motorola
+ 	  phones and tablets such as droid 4.
+ 
++config BATTERY_MT6323
++	tristate "MT6323 PMIC AUXADC battery gauge (Teclast P80h)"
++	depends on MFD_MT6397
++	help
++	  Battery voltage from the MT6323 AUXADC (BATSNS) and capacity from the
++	  OCV table of the monitored simple-battery, as the P80h stock kernel.
++
+ config BATTERY_CW2015
+ 	tristate "CW2015 Battery driver"
+ 	depends on I2C
+diff --git a/drivers/power/supply/Makefile b/drivers/power/supply/Makefile
+index 8dcb41545..c005aaba9 100644
+--- a/drivers/power/supply/Makefile
++++ b/drivers/power/supply/Makefile
+@@ -25,6 +25,7 @@ obj-$(CONFIG_BATTERY_AXP20X)	+= axp20x_battery.o
+ obj-$(CONFIG_CHARGER_AXP20X)	+= axp20x_ac_power.o
+ obj-$(CONFIG_BATTERY_CPCAP)	+= cpcap-battery.o
+ obj-$(CONFIG_BATTERY_CW2015)	+= cw2015_battery.o
++obj-$(CONFIG_BATTERY_MT6323)	+= mt6323-battery.o
+ obj-$(CONFIG_BATTERY_DS2760)	+= ds2760_battery.o
+ obj-$(CONFIG_BATTERY_DS2780)	+= ds2780_battery.o
+ obj-$(CONFIG_BATTERY_DS2781)	+= ds2781_battery.o

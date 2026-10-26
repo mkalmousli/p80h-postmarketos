@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Volume
+Exec=pavucontrol
+Icon=audio-volume-high

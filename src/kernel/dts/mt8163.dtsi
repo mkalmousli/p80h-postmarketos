@@ -19,7 +19,20 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		cpu0: cpu@0 { device_type = "cpu"; compatible = "arm,cortex-a53"; reg = <0x0>; };
+		cpu0: cpu@0 { device_type = "cpu"; compatible = "arm,cortex-a53"; reg = <0x0>; enable-method = "psci"; };
+		cpu1: cpu@1 { device_type = "cpu"; compatible = "arm,cortex-a53"; reg = <0x1>; enable-method = "psci"; };
+		cpu2: cpu@2 { device_type = "cpu"; compatible = "arm,cortex-a53"; reg = <0x2>; enable-method = "psci"; };
+		cpu3: cpu@3 { device_type = "cpu"; compatible = "arm,cortex-a53"; reg = <0x3>; enable-method = "psci"; };
+	};
+
+	/* ATF (tee1) speaks PSCI 0.1 with the stock DT's function IDs; it only sets the entry point, the core's MTCMOS
+	 * is switched by drivers/soc/mediatek/mt8163-cpu-power.c as stock mt_psci_cpu_boot does. */
+	psci {
+		compatible = "arm,psci";
+		method = "smc";
+		cpu_suspend = <0x84000001>;
+		cpu_off = <0x84000002>;
+		cpu_on = <0x84000003>;
 	};
 
 	timer {
@@ -28,6 +41,27 @@
 		interrupts = <GIC_PPI 13 IRQ_TYPE_LEVEL_LOW>, <GIC_PPI 14 IRQ_TYPE_LEVEL_LOW>,
 			     <GIC_PPI 11 IRQ_TYPE_LEVEL_LOW>, <GIC_PPI 10 IRQ_TYPE_LEVEL_LOW>;
 		clock-frequency = <13000000>;
+	};
+
+	thermal-zones {
+		cpu_thermal: cpu-thermal {
+			polling-delay-passive = <1000>;
+			polling-delay = <2000>;
+			thermal-sensors = <&thermal 0>;
+
+			trips {
+				cpu_hot: hot {
+					temperature = <100000>;
+					hysteresis = <2000>;
+					type = "hot";
+				};
+				cpu_crit: critical {
+					temperature = <115000>;
+					hysteresis = <2000>;
+					type = "critical";
+				};
+			};
+		};
 	};
 
 	soc {
@@ -92,6 +126,13 @@
 			reg = <0 0x10005000 0 0x1000>;
 		};
 
+		/* SPM; only looked up (not probed) by mt8163-cpu-power for the CPU MTCMOS, the AFE maps it too */
+		scpsys: power-controller@10006000 {
+			compatible = "mediatek,mt8163-scpsys";
+			reg = <0 0x10006000 0 0x1000>;
+			status = "disabled";
+		};
+
 		pio: pinctrl@1000b000 {
 			compatible = "mediatek,mt8163-pinctrl";
 			reg = <0 0x1000b000 0 0x1000>;
@@ -118,7 +159,7 @@
 			pmic: pmic {
 				compatible = "mediatek,mt6323";
 				interrupt-parent = <&pio>;
-				interrupts = <150 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <24 IRQ_TYPE_LEVEL_HIGH>;	/* stock PMIC_EINT_SETTING: mt_eint_registration(24, level high); 150 floats and storms */
 				interrupt-controller;
 				#interrupt-cells = <2>;
 
@@ -129,6 +170,10 @@
 					power {
 						linux,keycodes = <116>;
 						wakeup-source;
+					};
+					/* stock kpd_pmic_rstkey_hal reports the PMIC home key as KEY_VOLUMEDOWN */
+					home {
+						linux,keycodes = <114>;
 					};
 				};
 
@@ -210,6 +255,66 @@
 			};
 		};
 
+		/* only referenced by the thermal controller (TS readings go through AUXADC channel 11) */
+		auxadc: adc@11001000 {
+			compatible = "mediatek,mt8163-auxadc", "mediatek,mt8173-auxadc";
+			reg = <0 0x11001000 0 0x1000>;
+			clocks = <&infracfg CLK_INFRA_AUXADC>;
+			clock-names = "main";
+			#io-channel-cells = <1>;
+		};
+
+		thermal: thermal@1100b000 {
+			compatible = "mediatek,mt8163-thermal";
+			reg = <0 0x1100b000 0 0x1000>;
+			interrupts = <GIC_SPI 78 IRQ_TYPE_LEVEL_LOW>;
+			clocks = <&infracfg CLK_INFRA_THERM>, <&infracfg CLK_INFRA_AUXADC>;
+			clock-names = "therm", "auxadc";
+			mediatek,auxadc = <&auxadc>;
+			mediatek,apmixedsys = <&apmixedsys>;
+			#thermal-sensor-cells = <1>;
+		};
+
+		/* CONSYS (Wi-Fi/BT/GPS/FM combo core on die, MT6627-class RF), all from the stock DT and kernel:
+		 * BTIF is the AP<->CONSYS UART-like link (STP/WMT), its APDMA channels, and the Wi-Fi AHB window. */
+		btif: serial@1100c000 {
+			compatible = "mediatek,mt8163-btif", "mediatek,btif";
+			reg = <0 0x1100c000 0 0x1000>;
+			interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_LOW>;
+			clocks = <&infracfg CLK_INFRA_BTIF>, <&infracfg CLK_INFRA_AP_DMA>;
+			clock-names = "btifc", "apdmac";
+		};
+
+		btif_tx: dma-controller@11000700 {
+			compatible = "mediatek,btif_tx";
+			reg = <0 0x11000700 0 0x80>;
+			interrupts = <GIC_SPI 110 IRQ_TYPE_LEVEL_LOW>;
+		};
+
+		btif_rx: dma-controller@11000780 {
+			compatible = "mediatek,btif_rx";
+			reg = <0 0x11000780 0 0x80>;
+			interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_LOW>;
+		};
+
+		/* reg: CONN MCU config, TOPRGU, TOPCKGEN + INFRACFG (EMI remap 0x10001320), SPM (CONN MTCMOS 0x280) */
+		consys: connectivity@18070000 {
+			compatible = "mediatek,mt8163-consys";
+			reg = <0 0x18070000 0 0x200>, <0 0x10007000 0 0x100>,
+			      <0 0x10000000 0 0x2000>, <0 0x10006000 0 0x1000>;
+			interrupts = <GIC_SPI 237 IRQ_TYPE_LEVEL_LOW>;
+			status = "disabled";
+		};
+
+		wifi: wifi@180f0000 {
+			compatible = "mediatek,mt8163-wifi", "mediatek,wifi";
+			reg = <0 0x180f0000 0 0x5c>, <0 0x11000080 0 0x54>;	/* AHB window, HIF APDMA channel */
+			interrupts = <GIC_SPI 238 IRQ_TYPE_LEVEL_LOW>;
+			clocks = <&infracfg CLK_INFRA_AP_DMA>;
+			clock-names = "wifi-dma";
+			status = "disabled";
+		};
+
 		i2c0: i2c@11007000 {
 			compatible = "mediatek,mt8173-i2c";
 			reg = <0 0x11007000 0 0x70>, <0 0x11000180 0 0x80>;
@@ -269,6 +374,16 @@
 		 * dispsys headers: OVL/RDMA/DSI = mt8173 layout, routing = mt8167, mutex/mm gates MT8163-own.
 		 * No IOMMU: LK runs with M4U off and larb0 MMU_EN = 0, buffers come from CMA.
 		 */
+		/* same IP as mt6779 (vendor hal_kpd.h: MEM 0x04, DEBOUNCE 0x18, SEL 0x20, EN 0x24); stock DT: SPI 162 falling */
+		keypad: keypad@10010000 {
+			compatible = "mediatek,mt6779-keypad";
+			reg = <0 0x10010000 0 0x1000>;
+			interrupts = <GIC_SPI 162 IRQ_TYPE_EDGE_FALLING>;
+			clocks = <&clk32k>;
+			clock-names = "kpd";
+			status = "disabled";
+		};
+
 		mipi_tx0: dsi-phy@10215000 {
 			compatible = "mediatek,mt8163-mipi-tx";
 			reg = <0 0x10215000 0 0x90>;
@@ -335,6 +450,15 @@
 			clocks = <&mmsys CLK_MM_DISP_DITHER>;
 		};
 
+		disp_pwm0: pwm@14014000 {
+			compatible = "mediatek,mt8173-disp-pwm", "mediatek,mt6595-disp-pwm";
+			reg = <0 0x14014000 0 0x1000>;
+			#pwm-cells = <2>;
+			clocks = <&mmsys CLK_MM_DISP_PWM_MM>, <&mmsys CLK_MM_DISP_PWM_26M>;
+			clock-names = "main", "mm";
+			status = "disabled";
+		};
+
 		dsi0: dsi@14012000 {
 			compatible = "mediatek,mt8173-dsi";
 			reg = <0 0x14012000 0 0x1000>;
@@ -369,6 +493,22 @@
 			dr_mode = "peripheral";
 			clocks = <&infracfg CLK_INFRA_USB>, <&infracfg CLK_INFRA_USB_MCU>, <&apmixedsys CLK_APMIXED_UNIVPLL>;
 			clock-names = "main", "mcu", "univpll";
+		};
+
+		/*
+		 * Audio front end. Stock DT AUDIO@0x11220000 SPI 142 (stock /proc/interrupts: GIC 174 Afe_ISR_Handle);
+		 * the second reg is SPM, mapped (not claimed) to power the audio MTCMOS as stock spm_mtcmos_ctrl_aud.
+		 */
+		afe: audio-controller@11220000 {
+			compatible = "mediatek,mt8163-afe";
+			reg = <0 0x11220000 0 0x1000>, <0 0x10006000 0 0x1000>;
+			reg-names = "afe", "spm";
+			interrupts = <GIC_SPI 142 IRQ_TYPE_LEVEL_LOW>;
+			clocks = <&infracfg CLK_INFRA_AUDIO>, <&topckgen CLK_TOP_AUDIO_SEL>,
+				 <&topckgen CLK_TOP_AUD_INTBUS_SEL>;
+			clock-names = "infra", "top", "intbus";
+			#sound-dai-cells = <0>;
+			status = "disabled";
 		};
 	};
 

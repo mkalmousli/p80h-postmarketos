@@ -43,7 +43,8 @@ def scanout(ch) -> tuple[bytes, dict]:
     info = {"layer_en": src_con & 1, "addr": hex(addr), "w": w, "h": h, "pitch": stride, "con": hex(con)}
     if not (src_con & 1 and w and h and stride >= 4 * w):
         return b"", info
-    fb = ch.get("/dev/mem", addr, stride * h)
+    chunk = 1 << 18  # one big /dev/mem read crawls (minutes), 256 KiB pieces take ms each
+    fb = b"".join(ch.get("/dev/mem", addr + o, min(chunk, stride * h - o)) for o in range(0, stride * h, chunk))
     px = b"".join(fb[y * stride:y * stride + 4 * w] for y in range(h))
     rgb = bytearray(w * h * 3)
     rgb[0::3], rgb[1::3], rgb[2::3] = px[2::4], px[1::4], px[0::4]

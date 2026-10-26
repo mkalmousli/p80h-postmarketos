@@ -1,0 +1,46 @@
+#!/usr/bin/python3
+"""Auto-rotate: iio-sensor-proxy orientation (monitor-sensor) -> xrandr rotation + touchscreen matrix.
+
+The accelerometer mount matrix comes from udev (61-p80h-sensor.rules), so "normal" = the portrait panel as LK
+shows it; the touch axes are already mapped to that frame in the DT. touch ~/.config/p80h-rotation-lock to pin.
+"""
+import os
+import re
+import subprocess
+import sys
+
+TOUCH = "p80h-touch"  # the virtual mouse of p80h-touch (it grabs the panel)
+LOCK = os.path.expanduser("~/.config/p80h-rotation-lock")
+ROT = {  # iio-sensor-proxy name -> (xrandr rotation, libinput coordinate transformation matrix)
+    "normal": ("normal", "1 0 0 0 1 0 0 0 1"),
+    "left-up": ("left", "0 -1 1 1 0 0 0 0 1"),
+    "right-up": ("right", "0 1 0 -1 0 1 0 0 1"),
+    "bottom-up": ("inverted", "-1 0 1 0 -1 1 0 0 1"),
+}
+
+
+def output() -> str:
+    xr = subprocess.run(["xrandr", "-q"], capture_output=True, text=True).stdout
+    m = re.search(r"^(\S+) connected", xr, re.M)
+    return m.group(1) if m else "DSI-1"
+
+
+def apply(name: str) -> None:
+    if name not in ROT or os.path.exists(LOCK):
+        return
+    rot, matrix = ROT[name]
+    subprocess.run(["xrandr", "--output", output(), "--rotate", rot])
+    subprocess.run(["xinput", "set-prop", TOUCH, "Coordinate Transformation Matrix", *matrix.split()])
+
+
+def main() -> None:
+    if len(sys.argv) > 1:
+        return apply(sys.argv[1])
+    mon = subprocess.Popen(["monitor-sensor"], stdout=subprocess.PIPE, text=True)
+    for line in mon.stdout:
+        m = re.search(r"orientation(?: changed)?: (\S+)", line)
+        if m:
+            apply(m.group(1).strip(")"))
+
+
+main()

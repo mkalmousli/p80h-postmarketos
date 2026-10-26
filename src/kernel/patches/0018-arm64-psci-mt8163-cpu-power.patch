@@ -1,0 +1,72 @@
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index fabd732d0..706f9ad68 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -36,12 +36,20 @@ static int __init cpu_psci_cpu_prepare(unsigned int cpu)
+ 	return 0;
+ }
+ 
++/* SoCs whose firmware leaves the core's power domain to the OS (MT8163 ATF): -ENODEV = nothing to do */
++int __weak psci_platform_cpu_power(u64 hwid, bool on)
++{
++	return -ENODEV;
++}
++
+ static int cpu_psci_cpu_boot(unsigned int cpu)
+ {
+ 	phys_addr_t pa_secondary_entry = __pa_symbol(secondary_entry);
+ 	int err = psci_ops.cpu_on(cpu_logical_map(cpu), pa_secondary_entry);
+ 	if (err && err != -EPERM)
+ 		pr_err("failed to boot CPU%d (%d)\n", cpu, err);
++	if (!err && psci_platform_cpu_power(cpu_logical_map(cpu), true) == -ETIMEDOUT)
++		err = -ETIMEDOUT;
+ 
+ 	return err;
+ }
+@@ -82,6 +90,9 @@ static int cpu_psci_cpu_kill(unsigned int cpu)
+ 	int err;
+ 	unsigned long start, end;
+ 
++	err = psci_platform_cpu_power(cpu_logical_map(cpu), false);
++	if (err != -ENODEV)
++		return err;
+ 	if (!psci_ops.affinity_info)
+ 		return 0;
+ 	/*
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 1b7afb19c..324bfc224 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -78,4 +78,11 @@ config MTK_SOCINFO
+ 	  information about the SoC to the userspace including the
+ 	  manufacturer name, marketing name and soc name.
+ 
++config MT8163_CPU_POWER
++	bool "MediaTek MT8163 secondary CPU power domains"
++	depends on ARM64 && ARM_PSCI_FW
++	help
++	  Switches the CPU1-3 MTCMOS after PSCI CPU_ON / on CPU kill, which
++	  the MT8163 ATF leaves to the OS (stock spm_mtcmos_ctrl_cpu).
++
+ endmenu
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 683051284..f20903fb3 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -8,3 +8,4 @@ obj-$(CONFIG_MTK_MMSYS) += mtk-mmsys.o
+ obj-$(CONFIG_MTK_MMSYS) += mtk-mutex.o
+ obj-$(CONFIG_MTK_SVS) += mtk-svs.o
+ obj-$(CONFIG_MTK_SOCINFO) += mtk-socinfo.o
++obj-$(CONFIG_MT8163_CPU_POWER) += mt8163-cpu-power.o
+diff --git a/include/linux/psci.h b/include/linux/psci.h
+index 4ca0060a3..ea3f959db 100644
+--- a/include/linux/psci.h
++++ b/include/linux/psci.h
+@@ -15,6 +15,7 @@
+ #define PSCI_POWER_STATE_TYPE_POWER_DOWN	1
+ 
+ bool psci_tos_resident_on(int cpu);
++int psci_platform_cpu_power(u64 hwid, bool on);
+ 
+ int psci_cpu_suspend_enter(u32 state);
+ bool psci_power_state_is_valid(u32 state);

@@ -1,0 +1,12 @@
+#!/bin/sh
+# Wi-Fi + Bluetooth at boot: MT8163 CONSYS stack (src/connsys, modules + launcher in /root/connsys), the tablet's own
+# WPA2 AP (/etc/ap.conf) for the PC link at 192.168.43.1, then BT: stpbt-vhci-bridge turns /dev/stpbt into hci0.
+[ -x /root/connsys/p80h-wifi-up.sh ] || exit 0
+(
+	/root/connsys/p80h-wifi-up.sh > /var/log/wifi-up.log 2>&1 || exit 1
+	[ -f /etc/ap.conf ] && /root/connsys/ap-up.sh start >> /var/log/wifi-up.log 2>&1
+	[ -f /etc/ap.conf ] && /root/connsys/ap-watch.sh > /dev/null 2>&1 &
+	/root/connsys/stpbt-vhci-bridge > /var/log/stpbt-bridge.log 2>&1 &
+	sleep 3
+	rfkill unblock bluetooth	# the rfkill service restores a saved soft block
+) &

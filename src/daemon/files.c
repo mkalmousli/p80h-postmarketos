@@ -27,6 +27,8 @@ void cmd_put(int fd, const char *arg)
 		say(fd, "ERR open\n");
 		return;
 	}
+	if (!dev)
+		fchmod(f, mode);  /* open() applies the mode only on create, and through the umask */
 	for (; size > 0; size -= n) {
 		n = read(fd, buf, size < (long)sizeof(buf) ? size : (long)sizeof(buf));
 		if (n <= 0 || write_full(f, buf, n))

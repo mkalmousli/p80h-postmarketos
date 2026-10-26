@@ -12,7 +12,7 @@ State: mainline boots to initramfs, reachable over USB-NCM (`p80hd` at 172.16.42
 | `p80h/` | Python CLI (`uv run p80h ...`): brom, kernel build, image build, try-kernel, camera OCR |
 | `kernel/` | our dts (`dts/`), patch series (`patches/`), `config/p80h.fragment`, drivers, CREDITS.md |
 | `daemon/` | C source of `p80hd`, the on-tablet daemon (root service over USB-net) |
-| `port/` | `pmaports/` pmOS device+kernel pkgs · `overlay/` rootfs overlay · `stock/` stock boot inputs |
+| `port/` | `pmaports/` pmOS device+kernel pkgs · `overlay/` rootfs tree mirrored onto / and `packages` (apk list), both applied by `p80h provision` · `stock/` stock boot inputs |
 | `tools/` | `devmem.c`, `pmbootstrap.cfg`, `retry-scripts/` (OLD bash, hardcode dead paths) |
 | `tests/` | pytest |
 
@@ -27,7 +27,7 @@ State: mainline boots to initramfs, reachable over USB-NCM (`p80hd` at 172.16.42
 | `dumps/stock-extracted/` | unpacked stock ramdisk, crash/expdb snapshot |
 | `dumps/logs/` | old session logs (w*.log, *.status) |
 | `re/` | decompiled stock DTB (`dt/`), early probe boot image |
-| `trees/` | `linux` (mainline v6.12.99 work tree), `kernel_douglas` (vendor 3.10 source) |
+| `trees/` | `linux` (mainline v6.12.99 work tree) |
 | `vendor/` | `mtkclient` (set `P80H_MTK`), `pmbootstrap`, `pmaports` (use `src/tools/pmbootstrap.cfg`) |
 | `out/` | built kernels/images/logs (`last-boot.log`, `screen.txt`), `legacy-images/` |
 | `build/pmos-work/` | pmbootstrap chroots · `cache/` kernel build cache |

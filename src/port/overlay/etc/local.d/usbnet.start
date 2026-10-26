@@ -1,0 +1,7 @@
+#!/bin/sh
+# Internet through the dev PC (src/tools/share-net.sh NATs 172.16.42.0/24) when nothing else gives a route.
+# The PC's address is what unudhcpd leased it (172.16.42.2); /etc/p80h/gateway overrides.
+GW=$(cat /etc/p80h/gateway 2>/dev/null || echo 172.16.42.2)
+ip route show default | grep -q . || ip route add default via "$GW" dev usb0 metric 900 2>/dev/null
+grep -q '^nameserver' /etc/resolv.conf 2>/dev/null || echo 'nameserver 1.1.1.1' > /etc/resolv.conf
+true

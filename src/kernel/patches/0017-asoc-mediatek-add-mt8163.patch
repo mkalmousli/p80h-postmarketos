@@ -1,0 +1,31 @@
+diff --git a/sound/soc/mediatek/Kconfig b/sound/soc/mediatek/Kconfig
+index 3033e2d3f..366f8c172 100644
+--- a/sound/soc/mediatek/Kconfig
++++ b/sound/soc/mediatek/Kconfig
+@@ -3,6 +3,14 @@ config SND_SOC_MEDIATEK
+ 	tristate
+ 	select REGMAP_MMIO
+ 
++config SND_SOC_MT8163
++	tristate "ASoC support for MediaTek MT8163 (AFE + MT6323 codec)"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	depends on MFD_MT6397
++	help
++	  DL1/VUL memif and ADDA link of the MT8163 AFE with the MT6323
++	  PMIC codec (speaker, headphone, microphone), as on the Teclast P80h.
++
+ config SND_SOC_MT2701
+ 	tristate "ASoC support for Mediatek MT2701 chip"
+ 	depends on ARCH_MEDIATEK
+diff --git a/sound/soc/mediatek/Makefile b/sound/soc/mediatek/Makefile
+index 4b55434f2..d7902d806 100644
+--- a/sound/soc/mediatek/Makefile
++++ b/sound/soc/mediatek/Makefile
+@@ -3,6 +3,7 @@ obj-$(CONFIG_SND_SOC_MEDIATEK) += common/
+ obj-$(CONFIG_SND_SOC_MT2701) += mt2701/
+ obj-$(CONFIG_SND_SOC_MT6797) += mt6797/
+ obj-$(CONFIG_SND_SOC_MT7986) += mt7986/
++obj-$(CONFIG_SND_SOC_MT8163) += mt8163/
+ obj-$(CONFIG_SND_SOC_MT8173) += mt8173/
+ obj-$(CONFIG_SND_SOC_MT8183) += mt8183/
+ obj-$(CONFIG_SND_SOC_MT8186) += mt8186/

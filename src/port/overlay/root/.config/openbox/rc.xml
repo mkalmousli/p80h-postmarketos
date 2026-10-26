@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- P80h: touch-sized titles, apps open maximised on the 800x1280 portrait screen, hardware keys -->
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+  <focus><focusNew>yes</focusNew><followMouse>no</followMouse></focus>
+  <placement><policy>Smart</policy><center>yes</center></placement>
+  <theme>
+    <name>Clearlooks</name>
+    <titleLayout>NLIMC</titleLayout>
+    <keepBorder>yes</keepBorder>
+    <font place="ActiveWindow"><name>DejaVu Sans</name><size>14</size><weight>bold</weight></font>
+    <font place="InactiveWindow"><name>DejaVu Sans</name><size>14</size></font>
+    <font place="MenuHeader"><name>DejaVu Sans</name><size>15</size></font>
+    <font place="MenuItem"><name>DejaVu Sans</name><size>15</size></font>
+  </theme>
+  <desktops><number>1</number></desktops>
+  <keyboard>
+    <keybind key="XF86AudioRaiseVolume"><action name="Execute"><command>wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+</command></action></keybind>
+    <keybind key="XF86AudioLowerVolume"><action name="Execute"><command>wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-</command></action></keybind>
+    <keybind key="XF86AudioMute"><action name="Execute"><command>wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle</command></action></keybind>
+    <keybind key="A-F4"><action name="Close"/></keybind>
+    <keybind key="A-Tab"><action name="NextWindow"/></keybind>
+  </keyboard>
+  <mouse>
+    <dragThreshold>12</dragThreshold>
+    <doubleClickTime>400</doubleClickTime>
+    <context name="Titlebar">
+      <mousebind button="Left" action="Drag"><action name="Move"/></mousebind>
+      <mousebind button="Left" action="DoubleClick"><action name="ToggleMaximize"/></mousebind>
+      <mousebind button="Right" action="Press"><action name="ShowMenu"><menu>client-menu</menu></action></mousebind>
+    </context>
+    <context name="Close"><mousebind button="Left" action="Click"><action name="Close"/></mousebind></context>
+    <context name="Maximize"><mousebind button="Left" action="Click"><action name="ToggleMaximize"/></mousebind></context>
+    <context name="Iconify"><mousebind button="Left" action="Click"><action name="Iconify"/></mousebind></context>
+    <context name="Frame"><mousebind button="Left" action="Press"><action name="Focus"/><action name="Raise"/></mousebind></context>
+    <context name="Client"><mousebind button="Left" action="Press"><action name="Focus"/><action name="Raise"/></mousebind></context>
+    <context name="Root">
+      <mousebind button="Right" action="Press"><action name="Execute"><command>jgmenu_run</command></action></mousebind>
+      <mousebind button="Left" action="DoubleClick"><action name="Execute"><command>jgmenu_run</command></action></mousebind>
+    </context>
+  </mouse>
+  <applications>
+    <application type="normal"><maximized>yes</maximized></application>
+    <application class="Onboard"><focus>no</focus><layer>above</layer><maximized>no</maximized></application>
+    <application class="Matchbox-keyboard"><focus>no</focus><layer>above</layer><maximized>no</maximized></application>
+  </applications>
+</openbox_config>

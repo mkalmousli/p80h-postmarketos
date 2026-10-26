@@ -1,0 +1,103 @@
+diff --git a/drivers/power/supply/bq2415x_charger.c b/drivers/power/supply/bq2415x_charger.c
+index 25e28dac9..989102aba 100644
+--- a/drivers/power/supply/bq2415x_charger.c
++++ b/drivers/power/supply/bq2415x_charger.c
+@@ -23,6 +23,8 @@
+ #include <linux/sysfs.h>
+ #include <linux/platform_device.h>
+ #include <linux/power_supply.h>
++#include <linux/delay.h>
++#include <linux/regulator/driver.h>
+ #include <linux/idr.h>
+ #include <linux/i2c.h>
+ #include <linux/slab.h>
+@@ -783,6 +785,78 @@ static int bq2415x_set_mode(struct bq2415x_device *bq, enum bq2415x_mode mode)
+ 
+ }
+ 
++/*
++ * USB OTG VBUS from the charger's boost converter (the stock MT8163 tablet kernel switches it with OPA_MODE through
++ * tbl_charger_otg_vbus); registered when the charger node has a "usb-otg-vbus" child.
++ */
++static int bq2415x_vbus_enable(struct regulator_dev *rdev)
++{
++	struct bq2415x_device *bq = rdev_get_drvdata(rdev);
++	int i, ret = 0;
++
++	/*
++	 * Stock tbl_charger_otg_vbus (FAN5405): CONTROL = 0x30, VOLTAGE = 0x8e, then OPA_MODE, OTG_PL, OTG_EN. The generic
++	 * bq2415x_set_mode(BOOST) sequence leaves this chip in its reset defaults, boost off. Retried: a device already
++	 * on the port can trip the boost start-up.
++	 */
++	for (i = 0; i < 3; i++) {
++		ret = bq2415x_i2c_write(bq, BQ2415X_REG_CONTROL, 0x30);
++		ret = ret ?: bq2415x_i2c_write(bq, BQ2415X_REG_VOLTAGE, 0x8e);
++		ret = ret ?: bq2415x_i2c_write_bit(bq, BQ2415X_REG_CONTROL, 1, BQ2415X_BIT_OPA_MODE);
++		ret = ret ?: bq2415x_i2c_write_bit(bq, BQ2415X_REG_VOLTAGE, 1, BQ2415X_BIT_OTG_PL);
++		ret = ret ?: bq2415x_i2c_write_bit(bq, BQ2415X_REG_VOLTAGE, 1, BQ2415X_BIT_OTG_EN);
++		msleep(100);
++		if (!ret && bq2415x_exec_command(bq, BQ2415X_BOOST_MODE_STATUS) > 0) {
++			bq->mode = BQ2415X_MODE_BOOST;
++			return 0;
++		}
++	}
++	dev_err(bq->dev, "OTG boost did not start (%d)\n", ret);
++	return ret ? ret : -EIO;
++}
++
++static int bq2415x_vbus_disable(struct regulator_dev *rdev)
++{
++	struct bq2415x_device *bq = rdev_get_drvdata(rdev);
++
++	return bq2415x_set_mode(bq, bq->reported_mode == BQ2415X_MODE_BOOST ? BQ2415X_MODE_NONE : bq->reported_mode);
++}
++
++static int bq2415x_vbus_is_enabled(struct regulator_dev *rdev)
++{
++	return bq2415x_exec_command(rdev_get_drvdata(rdev), BQ2415X_BOOST_MODE_STATUS) > 0;
++}
++
++static const struct regulator_ops bq2415x_vbus_ops = {
++	.enable = bq2415x_vbus_enable,
++	.disable = bq2415x_vbus_disable,
++	.is_enabled = bq2415x_vbus_is_enabled,
++};
++
++static const struct regulator_desc bq2415x_vbus_desc = {
++	.name = "usb-otg-vbus",
++	.of_match = "usb-otg-vbus",
++	.type = REGULATOR_VOLTAGE,
++	.owner = THIS_MODULE,
++	.ops = &bq2415x_vbus_ops,
++	.fixed_uV = 5000000,
++	.n_voltages = 1,
++};
++
++static int bq2415x_vbus_init(struct bq2415x_device *bq)
++{
++	struct regulator_config cfg = { .dev = bq->dev, .driver_data = bq };
++	struct device_node *np = of_get_child_by_name(bq->dev->of_node, "usb-otg-vbus");
++	struct regulator_dev *rdev;
++
++	if (!np)
++		return 0;
++	cfg.of_node = np;
++	rdev = devm_regulator_register(bq->dev, &bq2415x_vbus_desc, &cfg);
++	of_node_put(np);
++	return PTR_ERR_OR_ZERO(rdev);
++}
++
+ static bool bq2415x_update_reported_mode(struct bq2415x_device *bq, int mA)
+ {
+ 	enum bq2415x_mode mode;
+@@ -1640,6 +1714,10 @@ static int bq2415x_probe(struct i2c_client *client)
+ 		goto error_2;
+ 	}
+ 
++	ret = bq2415x_vbus_init(bq);
++	if (ret)
++		dev_err(bq->dev, "failed to register the OTG VBUS regulator: %d\n", ret);
++
+ 	ret = bq2415x_set_defaults(bq);
+ 	if (ret) {
+ 		dev_err(bq->dev, "failed to set default values: %d\n", ret);

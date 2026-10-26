@@ -12,7 +12,9 @@ CACHE = Path(os.environ.get("P80H_CACHE", REPO / "local" / "cache"))
 SRC = Path(os.environ.get("P80H_LINUX", REPO / "local" / "trees" / "linux"))
 OUT = CACHE / "build"
 DTS = SRC / "arch/arm64/boot/dts/mediatek"
-MAKE = ["make", "-C", str(SRC), "O=" + str(OUT), "ARCH=arm64", "CROSS_COMPILE=aarch64-linux-gnu-", f"-j{os.cpu_count()}"]
+# background priority by default: the PC is in use while kernels build (P80H_JOBS raises the job count)
+MAKE = ["nice", "-n", "19", "ionice", "-c", "3", "make", "-C", str(SRC), "O=" + str(OUT), "ARCH=arm64",
+        "CROSS_COMPILE=aarch64-linux-gnu-", f"-j{os.environ.get('P80H_JOBS', '2')}"]
 
 
 def run(*cmd, **kw):
@@ -48,3 +50,7 @@ def configure() -> None:
     run(SRC / "scripts/kconfig/merge_config.sh", "-m", "-O", OUT, OUT / ".config", KDIR / "config/p80h.fragment",
         cwd=SRC, capture_output=True)
     run(*MAKE, "olddefconfig", capture_output=True)
+    have = set((OUT / ".config").read_text().splitlines())
+    want = [ln for ln in (KDIR / "config/p80h.fragment").read_text().splitlines() if ln.startswith("CONFIG_") and not ln.endswith("=n")]
+    if lost := [ln for ln in want if ln not in have]:  # a dependency is off: kconfig drops these silently
+        print("fragment options not in .config:", *lost, sep="\n  ")

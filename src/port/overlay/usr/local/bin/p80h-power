@@ -1,0 +1,27 @@
+#!/usr/bin/python3
+"""Power button toggles the display (backlight off/on); runs from the session autostart."""
+import glob
+import select
+import struct
+
+NODE = "/sys/class/backlight/backlight/brightness"
+KEY_POWER, EV_KEY = 116, 1
+FMT = "llHHi"
+saved = 128
+fds = []
+for ev in glob.glob("/dev/input/event*"):
+    try:
+        fds.append(open(ev, "rb", buffering=0))
+    except OSError:
+        pass
+while True:
+    for r in select.select(fds, [], [])[0]:
+        data = r.read(struct.calcsize(FMT))
+        if len(data) < struct.calcsize(FMT):
+            continue
+        _, _, typ, code, val = struct.unpack(FMT, data)
+        if typ == EV_KEY and code == KEY_POWER and val == 1:
+            cur = int(open(NODE).read())
+            if cur:
+                saved = cur
+            open(NODE, "w").write(str(0 if cur else saved))

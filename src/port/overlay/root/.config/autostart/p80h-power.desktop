@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Power key: display off/on
+Exec=/usr/local/bin/p80h-power
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

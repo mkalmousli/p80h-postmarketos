@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Sound test
+Exec=mpv --force-window=no /root/Music/p80h-test.wav
+Icon=audio-speakers
