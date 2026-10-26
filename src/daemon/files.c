@@ -36,7 +36,7 @@ void cmd_put(int fd, const char *arg)
 	snprintf(label, sizeof(label), "%s %.28s", dev ? "WRITING" : "RECEIVING", name);
 	total = size;
 	for (; size > 0; size -= n) {
-		pct = total >= (1 << 20) ? (int)((total - size) * 100 / total) : -2;	/* only big transfers get a screen */
+		pct = total >= (1 << 20) ? (int)((total - size) * 1000 / total) : -2;	/* only big transfers get a screen */
 		if (pct != last && pct != -2)
 			progress(label, last = pct);
 		n = read(fd, buf, size < (long)sizeof(buf) ? size : (long)sizeof(buf));

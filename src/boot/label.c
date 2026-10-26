@@ -1,4 +1,4 @@
-/* progress messages from p80hd and the label text under the ring */
+/* progress messages from p80hd and the text drawing */
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +8,6 @@
 #include "font.h"
 #include "splash.h"
 
-#define MAXCH 40	/* characters per label */
 static int sock = -1;
 const float acc[3] = {76, 195, 255};
 
@@ -20,34 +19,34 @@ int ui_open(void)
 	return sock < 0 || bind(sock, (void *)&a, offsetof(struct sockaddr_un, sun_path) + 8);
 }
 
-int ui_poll(char *label, int n, int *pct)
+int ui_poll(char *label, int n, int *pm)
 {
 	char b[160], *t;
 	ssize_t r = sock < 0 ? -1 : recv(sock, b, sizeof(b) - 1, 0);
 	if (r < 0) return 0;
 	b[r] = 0;
 	t = strchr(b, '\t');
-	*pct = t ? atoi(t + 1) : -1;
+	*pm = t ? atoi(t + 1) : -1;
 	if (t) *t = 0;
 	snprintf(label, n, "%s", b);
 	return 1;
 }
 
-static void put(unsigned char *fb, int stride, int x, int y, unsigned px) { ((unsigned *)(fb + x * stride))[LH - 1 - y] = px; }
-
-void ui_clear(unsigned char *fb, int stride, int cx, int y)
+static unsigned blend(unsigned fg, unsigned bg, int a)
 {
-	for (int j = 0; j < GH; j++)
-		for (int i = -MAXCH * GW / 2; i < MAXCH * GW / 2; i++) put(fb, stride, cx + i, y + j, 0);
+	unsigned o = 0;
+	for (int s = 0; s < 24; s += 8) o |= (((fg >> s & 255) * a + (bg >> s & 255) * (255 - a)) / 255) << s;
+	return o;
 }
 
-void ui_text(unsigned char *fb, int stride, int cx, int y, const char *s, float k)
+void ui_text(unsigned char *fb, int stride, int x, int y, const char *s, unsigned fg, unsigned bg, int align)
 {
-	int x = cx - (int)strnlen(s, MAXCH) * GW / 2;
-	for (int c = 0; *s && c < MAXCH; s++, c++, x += GW)
+	int n = (int)strlen(s);
+	x -= align < 0 ? 0 : align > 0 ? n * GW : n * GW / 2;
+	for (; *s; s++, x += GW)
 		for (int j = 0; j < GH; j++)
 			for (int i = 0; i < GW; i++) {
-				float a = font[*s < 32 || *s > 126 ? 0 : *s - 32][j * GW + i] / 255.f * k * .8f;
-				put(fb, stride, x + i, y + j, (unsigned)(acc[0] * a) << 16 | (unsigned)(acc[1] * a) << 8 | (unsigned)(acc[2] * a));
+				int a = font[*s < 32 || *s > 126 ? 0 : *s - 32][j * GW + i];
+				if (a) px(fb, stride, x + i, y + j, blend(fg, bg, a));
 			}
 }

@@ -16,7 +16,7 @@ void cmd_reboot(int fd, const char *arg);
 void cmd_inject(int fd, const char *arg);
 void cmd_status(int fd, const char *arg);
 
-void progress(const char *label, int pct);
+void progress(const char *label, int pm);
 
 void exec_init(void);
 void enter_root(void);

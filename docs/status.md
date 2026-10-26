@@ -245,3 +245,9 @@ Flash order, one block per run, kernel-122 carries all three kernel parts but ea
   core, fb0, SIGTERM = fade out) is on the panel from mdev until session.start stops it. Falsified if kernel text or a
   cursor shows, the animation stutters (>12 ms/frame), or X comes up with a black flash longer than ~0.3 s.
 - Dev loop cost: `p80h look` no longer sees kernel text; use the daemon (dmesg) or drop `quiet loglevel=0` in p80h.fragment.
+
+## Branding 2 - bottom progress bar (run 154)
+Hypothesis: a full-width bottom bar (label left, "%  ETA m:ss" right, eased fill, sweep when size unknown, slide in/out)
+fed by p80hd permille datagrams reads better than ring+label. Falsifier: bar not visible on the tablet during a deploy
+(only drawn where p80h-splash owns fb0: initramfs/rescue; under X it needs an X-side renderer). Host render check:
+glyph baseline bug in genfont.py found and fixed (tops were clipped). Next: desktop stack decision (no custom WM).

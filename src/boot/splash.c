@@ -34,15 +34,14 @@ static void tables(void)
 	for (int i = 0; i < TURN; i++) tail_lut[i] = powf(1 - (float)i / TURN, 3);	/* 1 at the head, 0 a turn behind */
 }
 
-static void frame(unsigned char *fb, int stride, float k, float t, int pct)
+static void frame(unsigned char *fb, int stride, float k, float t)
 {
 	float breath = .5f + .5f * sinf(t * .0035f);
 	int head = (int)(t * .0042f / 6.2832f * TURN) % TURN;
 	for (int y = 0; y < SZ; y++)
 		for (int x = 0; x < SZ; x++) {
 			float d = d_[y][x], ring = sat(2.5f - fabsf(d - R));
-			float on = pct < 0 ? tail_lut[(head - ang[y][x] + TURN) % TURN] : (ang[y][x] - TURN / 4 + TURN) % TURN < pct * TURN / 100 ? .95f : 0;
-			float l = base[y][x] + ring * on;	/* comet, or the arc filled clockwise from the top */
+			float l = base[y][x] + ring * tail_lut[(head - ang[y][x] + TURN) % TURN];	/* the comet */
 			if (d < 10) l += sat(6 + 4 * breath - d) * (.5f + .5f * breath);
 			l = sat(l) * k;
 			unsigned px = (unsigned)(acc[0] * l) << 16 | (unsigned)(acc[1] * l) << 8 | (unsigned)(acc[2] * l);
@@ -72,22 +71,15 @@ int main(void)
 	signal(SIGINT, stop);
 	float t0 = ms(), tq = 0, seen = 0;
 	char label[96] = "";
-	int pct = -1, ly = LH / 2 + R + 50;
+	int pm;
 	for (;;) {
 		float t = ms() - t0, k = sat(t / 600);	/* fade in */
-		if (ui_poll(label, sizeof(label), &pct)) {	/* an action from p80hd: label + arc, empty label = done */
-			seen = t;
-			ui_clear(fb, fx.line_length, LW / 2, ly);
-			if (*label) ui_text(fb, fx.line_length, LW / 2, ly, label, 1);
-		}
-		if (!*label) pct = -1;
+		if (ui_poll(label, sizeof(label), &pm)) bar_set(label, pm, seen = t);	/* an action from p80hd */
 		if (t - seen > 90000) quit = 1;	/* never outlive a desktop that forgot to stop us */
-		if (quit && !tq) {
-			tq = t;
-			ui_clear(fb, fx.line_length, LW / 2, ly);
-		}
+		if (quit && !tq) tq = t, bar_set("", 0, t);
 		if (quit) k = sat(1 - (t - tq) / 200) * k;
-		frame(fb, fx.line_length, k, t, pct);
+		frame(fb, fx.line_length, k, t);
+		bar_draw(fb, fx.line_length, t);
 		if (quit && k <= 0) return 0;
 		usleep(16000);
 	}
